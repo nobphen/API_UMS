@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 public record SurveyResponse(
         Long id,
         String title,
+        String titleKh,
         Survey.SurveyType surveyType,
         Long semesterId,
         boolean anonymous,

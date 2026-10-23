@@ -6,6 +6,7 @@ public record HostelResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         Hostel.GenderType genderType,
         String address,
         Long wardenStaffId) {

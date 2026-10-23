@@ -1,5 +1,5 @@
 -- =====================================================================
--- University Management System - PostgreSQL schema (117 tables, 20 modules)
+-- University Management System - PostgreSQL schema (118 tables, 20 modules)
 -- Java Spring Boot + JPA. Use as Flyway V1__init_schema.sql
 -- =====================================================================
 
@@ -17,6 +17,7 @@ CREATE TABLE users (
     session_ttl_days    INT NOT NULL DEFAULT 180 CHECK (session_ttl_days IN (7,30,90,180,365)),  -- auto-terminate sessions inactive this long
     must_change_password BOOLEAN NOT NULL DEFAULT FALSE,   -- temporary password (new account, admin reset): only a password change is allowed
     password_changed_at TIMESTAMPTZ,
+    preferred_language  VARCHAR(2) NOT NULL DEFAULT 'km' CHECK (preferred_language IN ('km','en')),  -- notifications and emails go out in this language
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by          BIGINT,
@@ -27,7 +28,9 @@ CREATE TABLE roles (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code        VARCHAR(50)  NOT NULL UNIQUE,
     name        VARCHAR(100) NOT NULL,
+    name_kh     VARCHAR(100),
     description TEXT,
+    description_kh TEXT,
     is_system   BOOLEAN NOT NULL DEFAULT FALSE,
     status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -41,7 +44,8 @@ CREATE TABLE permissions (
     code        VARCHAR(80) NOT NULL UNIQUE,
     module      VARCHAR(50) NOT NULL,
     action      VARCHAR(20) NOT NULL CHECK (action IN ('VIEW','CREATE','UPDATE','DELETE','APPROVE','EXPORT','MANAGE')),
-    description TEXT
+    description TEXT,
+    description_kh TEXT
 );
 
 CREATE TABLE role_permissions (
@@ -158,7 +162,8 @@ CREATE TABLE programs (
 CREATE TABLE buildings (
     id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code VARCHAR(20)  NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL
+    name VARCHAR(100) NOT NULL,
+    name_kh VARCHAR(100)
 );
 
 CREATE TABLE rooms (
@@ -170,7 +175,17 @@ CREATE TABLE rooms (
     UNIQUE (building_id, code)
 );
 
--- ---------- 3. PEOPLE (8) ----------
+-- ---------- 3. PEOPLE (9) ----------
+-- Every country (ISO 3166-1), for a person's nationality and an address's country. Seeded by V5__seed_countries.sql.
+CREATE TABLE countries (
+    code           VARCHAR(2)   PRIMARY KEY CHECK (code ~ '^[A-Z]{2}$'),   -- KH, TH, VN …
+    name_en        VARCHAR(100) NOT NULL,
+    name_kh        VARCHAR(100) NOT NULL,
+    nationality_en VARCHAR(100),                 -- Cambodian, Thai …; empty for uninhabited territories
+    nationality_kh VARCHAR(100),                 -- ខ្មែរ, ថៃ …
+    is_active      BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE persons (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     first_name     VARCHAR(80) NOT NULL,
@@ -179,7 +194,7 @@ CREATE TABLE persons (
     last_name_kh   VARCHAR(80),
     gender         VARCHAR(10) CHECK (gender IN ('MALE','FEMALE','OTHER')),
     dob            DATE,
-    nationality    VARCHAR(50),
+    nationality_code VARCHAR(2) DEFAULT 'KH' REFERENCES countries(code),
     national_id    VARCHAR(50),
     phone          VARCHAR(30),
     email          VARCHAR(150),
@@ -205,6 +220,74 @@ CREATE TABLE geo_areas (
 CREATE INDEX ix_geo_areas_parent ON geo_areas (parent_id, name_en);
 CREATE INDEX ix_geo_areas_level ON geo_areas (level, name_en);
 
+-- The database itself keeps the tree right, even for rows typed in by hand (e.g. in DBeaver):
+-- a district's parent is a province, a commune's a district, a village's a commune,
+-- and every code is its parent's code plus 2 digits (01 → 0102 → 010201 → 01020101).
+CREATE FUNCTION geo_areas_check_tree() RETURNS trigger AS $$
+DECLARE
+    parent_level VARCHAR(10);
+    parent_code  VARCHAR(10);
+    expected     VARCHAR(10);
+    digits       INT;
+BEGIN
+    -- worked out first: in IF ... THEN, PL/pgSQL would stop the condition at the THEN inside a CASE
+    digits := CASE NEW.level WHEN 'PROVINCE' THEN 2 WHEN 'DISTRICT' THEN 4 WHEN 'COMMUNE' THEN 6 ELSE 8 END;
+    IF length(NEW.code) <> digits THEN
+        RAISE EXCEPTION 'geo_areas %: a % code has % digits', NEW.code, lower(NEW.level), digits;
+    END IF;
+    IF NEW.level = 'PROVINCE' THEN
+        RETURN NEW;
+    END IF;
+    SELECT level, code INTO parent_level, parent_code FROM geo_areas WHERE id = NEW.parent_id;
+    expected := CASE NEW.level WHEN 'DISTRICT' THEN 'PROVINCE' WHEN 'COMMUNE' THEN 'DISTRICT' ELSE 'COMMUNE' END;
+    IF parent_level IS DISTINCT FROM expected THEN
+        RAISE EXCEPTION 'geo_areas %: a % must be inside a %', NEW.code, lower(NEW.level), lower(expected);
+    END IF;
+    IF left(NEW.code, length(parent_code)) <> parent_code THEN
+        RAISE EXCEPTION 'geo_areas %: the code must start with its parent''s code %', NEW.code, parent_code;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_geo_areas_check_tree
+    BEFORE INSERT OR UPDATE OF code, level, parent_id ON geo_areas
+    FOR EACH ROW EXECUTE FUNCTION geo_areas_check_tree();
+
+-- Read-only views, one per level, for browsing and reports (DBeaver, SQL): each shows the levels above it.
+-- The application keeps using geo_areas; changes go there.
+CREATE VIEW provinces AS
+SELECT p.id, p.code, p.name_kh, p.name_en, p.unit_kh, p.unit_en, p.is_active
+FROM geo_areas p
+WHERE p.level = 'PROVINCE';
+
+CREATE VIEW districts AS
+SELECT d.id, d.code, d.name_kh, d.name_en, d.unit_kh, d.unit_en, d.is_active,
+       p.id AS province_id, p.code AS province_code, p.name_kh AS province_name_kh, p.name_en AS province_name_en
+FROM geo_areas d
+JOIN geo_areas p ON p.id = d.parent_id
+WHERE d.level = 'DISTRICT';
+
+CREATE VIEW communes AS
+SELECT c.id, c.code, c.name_kh, c.name_en, c.unit_kh, c.unit_en, c.is_active,
+       d.id AS district_id, d.name_kh AS district_name_kh, d.name_en AS district_name_en,
+       p.id AS province_id, p.name_kh AS province_name_kh, p.name_en AS province_name_en
+FROM geo_areas c
+JOIN geo_areas d ON d.id = c.parent_id
+JOIN geo_areas p ON p.id = d.parent_id
+WHERE c.level = 'COMMUNE';
+
+CREATE VIEW villages AS
+SELECT v.id, v.code, v.name_kh, v.name_en, v.is_active,
+       c.id AS commune_id, c.name_kh AS commune_name_kh, c.name_en AS commune_name_en,
+       d.id AS district_id, d.name_kh AS district_name_kh, d.name_en AS district_name_en,
+       p.id AS province_id, p.name_kh AS province_name_kh, p.name_en AS province_name_en
+FROM geo_areas v
+JOIN geo_areas c ON c.id = v.parent_id
+JOIN geo_areas d ON d.id = c.parent_id
+JOIN geo_areas p ON p.id = d.parent_id
+WHERE v.level = 'VILLAGE';
+
 -- Birth place, permanent and current address of a student, staff member, guardian or applicant.
 -- The app sends only the smallest area chosen (usually the village); the server fills the levels above it.
 CREATE TABLE person_addresses (
@@ -217,10 +300,12 @@ CREATE TABLE person_addresses (
     commune_id   BIGINT REFERENCES geo_areas(id),
     district_id  BIGINT REFERENCES geo_areas(id),
     province_id  BIGINT REFERENCES geo_areas(id),   -- kept for reports such as "students per province"
-    country      VARCHAR(60) NOT NULL DEFAULT 'Cambodia',
+    country_code VARCHAR(2) NOT NULL DEFAULT 'KH' REFERENCES countries(code),
     address_line TEXT,                              -- an address outside Cambodia, or extra detail
     UNIQUE (person_id, address_type),
-    CHECK (province_id IS NOT NULL OR address_line IS NOT NULL)
+    CHECK (province_id IS NOT NULL OR address_line IS NOT NULL),
+    -- provinces, districts, communes and villages are Cambodia's: no area ids on an address abroad
+    CHECK (country_code = 'KH' OR (province_id IS NULL AND district_id IS NULL AND commune_id IS NULL AND village_id IS NULL))
 );
 CREATE INDEX ix_person_addresses_province ON person_addresses (province_id);
 
@@ -228,6 +313,7 @@ CREATE TABLE batches (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     program_id BIGINT NOT NULL REFERENCES programs(id),
     name       VARCHAR(50) NOT NULL,
+    name_kh    VARCHAR(50),
     start_year INT NOT NULL,
     UNIQUE (program_id, name)
 );
@@ -239,7 +325,9 @@ CREATE TABLE staff (
     staff_code     VARCHAR(30) NOT NULL UNIQUE,
     department_id  BIGINT REFERENCES departments(id),
     position       VARCHAR(100),
+    position_kh    VARCHAR(100),
     academic_title VARCHAR(50),
+    academic_title_kh VARCHAR(50),
     staff_type     VARCHAR(20) NOT NULL CHECK (staff_type IN ('LECTURER','OFFICE','BOTH')),   -- BOTH: teaches and does office work; permissions come from roles
     hire_date      DATE,
     status         VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','ON_LEAVE','RESIGNED','TERMINATED','RETIRED')),
@@ -301,6 +389,7 @@ CREATE TABLE semesters (
     id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     academic_year_id   BIGINT NOT NULL REFERENCES academic_years(id),
     name               VARCHAR(50) NOT NULL,
+    name_kh            VARCHAR(50),
     semester_no        INT NOT NULL,
     start_date         DATE NOT NULL,
     end_date           DATE NOT NULL,
@@ -320,6 +409,7 @@ CREATE TABLE courses (
     theory_hours  INT NOT NULL DEFAULT 0,
     lab_hours     INT NOT NULL DEFAULT 0,
     description   TEXT,
+    description_kh TEXT,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at    TIMESTAMPTZ
@@ -387,6 +477,7 @@ CREATE TABLE fee_types (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code          VARCHAR(30) NOT NULL UNIQUE,
     name          VARCHAR(100) NOT NULL,
+    name_kh       VARCHAR(100),
     is_refundable BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -394,6 +485,7 @@ CREATE TABLE scholarships (
     id                     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code                   VARCHAR(30) NOT NULL UNIQUE,
     name                   VARCHAR(150) NOT NULL,
+    name_kh                VARCHAR(150),
     discount_type          VARCHAR(10) NOT NULL CHECK (discount_type IN ('PERCENT','FIXED')),
     value                  NUMERIC(12,2) NOT NULL,
     applies_to_fee_type_id BIGINT REFERENCES fee_types(id)
@@ -404,6 +496,7 @@ CREATE TABLE admission_intakes (
     id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     academic_year_id BIGINT NOT NULL REFERENCES academic_years(id),
     name             VARCHAR(100) NOT NULL,
+    name_kh          VARCHAR(100),
     open_date        DATE NOT NULL,
     close_date       DATE NOT NULL,
     status           VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','OPEN','CLOSED'))
@@ -626,6 +719,7 @@ CREATE TABLE leave_types (
     id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code              VARCHAR(20) NOT NULL UNIQUE,
     name              VARCHAR(100) NOT NULL,
+    name_kh           VARCHAR(100),
     requires_document BOOLEAN NOT NULL DEFAULT FALSE,
     max_days          INT
 );
@@ -681,7 +775,8 @@ CREATE TABLE attendance_records (
 CREATE TABLE assessment_types (
     id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
-    name VARCHAR(50) NOT NULL
+    name VARCHAR(50) NOT NULL,
+    name_kh VARCHAR(50)
 );
 
 CREATE TABLE assessments (
@@ -855,7 +950,9 @@ CREATE TABLE certificates (
 CREATE TABLE announcements (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR(200) NOT NULL,
+    title_kh     VARCHAR(200),
     content      TEXT NOT NULL,
+    content_kh   TEXT,
     target_type  VARCHAR(20) NOT NULL DEFAULT 'ALL' CHECK (target_type IN ('ALL','ROLE','FACULTY','PROGRAM','CLASS_SECTION')),
     target_id    BIGINT,
     published_by BIGINT REFERENCES users(id),
@@ -908,6 +1005,7 @@ CREATE TABLE salary_components (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code           VARCHAR(30) NOT NULL UNIQUE,
     name           VARCHAR(100) NOT NULL,
+    name_kh        VARCHAR(100),
     component_type VARCHAR(20) NOT NULL CHECK (component_type IN ('ALLOWANCE','DEDUCTION')),
     is_taxable     BOOLEAN NOT NULL DEFAULT TRUE,
     calc_type      VARCHAR(10) NOT NULL DEFAULT 'FIXED' CHECK (calc_type IN ('FIXED','PERCENT'))
@@ -926,6 +1024,7 @@ CREATE TABLE staff_leave_types (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code          VARCHAR(20) NOT NULL UNIQUE,
     name          VARCHAR(100) NOT NULL,
+    name_kh       VARCHAR(100),
     days_per_year NUMERIC(5,1),
     is_paid       BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -959,6 +1058,7 @@ CREATE TABLE teaching_loads (
 CREATE TABLE payroll_periods (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        VARCHAR(50) NOT NULL UNIQUE,
+    name_kh     VARCHAR(50),
     start_date  DATE NOT NULL,
     end_date    DATE NOT NULL,
     status      VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','PROCESSING','APPROVED','PAID')),
@@ -993,6 +1093,7 @@ CREATE TABLE library_categories (
     id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code      VARCHAR(20) NOT NULL UNIQUE,
     name      VARCHAR(100) NOT NULL,
+    name_kh   VARCHAR(100),
     parent_id BIGINT REFERENCES library_categories(id)
 );
 
@@ -1091,6 +1192,7 @@ CREATE TABLE hostels (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code            VARCHAR(20) NOT NULL UNIQUE,
     name            VARCHAR(100) NOT NULL,
+    name_kh         VARCHAR(100),
     gender_type     VARCHAR(10) NOT NULL CHECK (gender_type IN ('MALE','FEMALE','MIXED')),
     address         TEXT,
     warden_staff_id BIGINT REFERENCES staff(id)
@@ -1155,6 +1257,7 @@ CREATE TABLE transport_routes (
     id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code              VARCHAR(20) NOT NULL UNIQUE,
     name              VARCHAR(100) NOT NULL,
+    name_kh           VARCHAR(100),
     vehicle_id        BIGINT REFERENCES vehicles(id),
     morning_departure TIME,
     evening_departure TIME,
@@ -1167,6 +1270,7 @@ CREATE TABLE route_stops (
     route_id    BIGINT NOT NULL REFERENCES transport_routes(id) ON DELETE CASCADE,
     stop_order  INT NOT NULL,
     name        VARCHAR(100) NOT NULL,
+    name_kh     VARCHAR(100),
     latitude    NUMERIC(9,6),
     longitude   NUMERIC(9,6),
     pickup_time TIME,
@@ -1303,7 +1407,9 @@ CREATE TABLE alumni_profiles (
 CREATE TABLE events (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR(200) NOT NULL,
+    title_kh     VARCHAR(200),
     description  TEXT,
+    description_kh TEXT,
     event_type   VARCHAR(20) NOT NULL CHECK (event_type IN ('SEMINAR','WORKSHOP','CEREMONY','ALUMNI','SPORTS')),
     start_at     TIMESTAMPTZ NOT NULL,
     end_at       TIMESTAMPTZ,
@@ -1327,6 +1433,7 @@ CREATE TABLE event_registrations (
 CREATE TABLE surveys (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR(200) NOT NULL,
+    title_kh     VARCHAR(200),
     survey_type  VARCHAR(30) NOT NULL CHECK (survey_type IN ('TEACHER_EVALUATION','COURSE_FEEDBACK','GENERAL','ALUMNI')),
     semester_id  BIGINT REFERENCES semesters(id),
     is_anonymous BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1340,6 +1447,7 @@ CREATE TABLE survey_questions (
     id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     survey_id     BIGINT NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
+    question_text_kh TEXT,
     question_type VARCHAR(10) NOT NULL CHECK (question_type IN ('RATING','TEXT','SINGLE','MULTIPLE')),
     options       JSONB,
     is_required   BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1362,6 +1470,7 @@ CREATE TABLE asset_categories (
     id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code               VARCHAR(20) NOT NULL UNIQUE,
     name               VARCHAR(100) NOT NULL,
+    name_kh            VARCHAR(100),
     depreciation_years INT
 );
 

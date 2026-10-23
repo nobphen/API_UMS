@@ -1,10 +1,10 @@
 # University Management System — Full Project Structure
 
-Spring Boot 4.1 · Java 21 · PostgreSQL · package by feature · 20 modules · 116 models (one per table)
+Spring Boot 4.1 · Java 21 · PostgreSQL · package by feature · 20 modules · 117 models (one per table)
 
 How to read it:
 - Each module (and each sub-feature inside a large module) has the same four folders: `api/` (controllers + DTOs), `application/` (service interfaces, `impl/` with the `ServiceImpl` classes, and mappers), `domain/` (JPA models), `infrastructure/` (repositories).
-- Every table has a model in `domain/` and a repository in `infrastructure/` — 116 models for 117 tables, because `role_permissions` is a @ManyToMany inside `Role` with no class of its own.
+- Every table has a model in `domain/` and a repository in `infrastructure/` — 117 models for 118 tables, because `role_permissions` is a @ManyToMany inside `Role` with no class of its own.
 - Main tables also get a controller, request/response DTOs, a service and a mapper. Child tables (invoice_items, user_roles, route_stops…) are saved through their parent's service, so they have no controller of their own.
 - Every service is an interface (`StudentService`) with its implementation in `application/impl/` (`StudentServiceImpl`, annotated `@Service @Transactional`). Controllers depend on the interface only.
 - Pluggable parts have several implementations behind one interface: file storage (MinIO / S3), payment gateways (ABA / KHQR / Wing), notification senders (FCM / email / Telegram).
@@ -853,6 +853,7 @@ ums/
 │   │   │           │   │   │   ├── AddressResponse.java
 │   │   │           │   │   │   ├── BatchRequest.java
 │   │   │           │   │   │   ├── BatchResponse.java
+│   │   │           │   │   │   ├── CountryResponse.java
 │   │   │           │   │   │   ├── GeoAreaRequest.java
 │   │   │           │   │   │   ├── GeoAreaResponse.java
 │   │   │           │   │   │   ├── GeoAreaUpdateRequest.java
@@ -867,6 +868,7 @@ ums/
 │   │   │           │   │   │   ├── StudentRequest.java
 │   │   │           │   │   │   └── StudentResponse.java
 │   │   │           │   │   ├── BatchController.java
+│   │   │           │   │   ├── CountryController.java
 │   │   │           │   │   ├── GeoAreaController.java
 │   │   │           │   │   ├── GuardianController.java
 │   │   │           │   │   ├── PersonController.java
@@ -875,6 +877,7 @@ ums/
 │   │   │           │   ├── application/
 │   │   │           │   │   ├── impl/
 │   │   │           │   │   │   ├── BatchServiceImpl.java
+│   │   │           │   │   │   ├── CountryServiceImpl.java
 │   │   │           │   │   │   ├── GeoAreaServiceImpl.java
 │   │   │           │   │   │   ├── GuardianServiceImpl.java
 │   │   │           │   │   │   ├── PersonAddressServiceImpl.java
@@ -883,12 +886,14 @@ ums/
 │   │   │           │   │   │   └── StudentServiceImpl.java
 │   │   │           │   │   ├── mapper/
 │   │   │           │   │   │   ├── BatchMapper.java
+│   │   │           │   │   │   ├── CountryMapper.java
 │   │   │           │   │   │   ├── GeoAreaMapper.java
 │   │   │           │   │   │   ├── GuardianMapper.java
 │   │   │           │   │   │   ├── PersonMapper.java
 │   │   │           │   │   │   ├── StaffMapper.java
 │   │   │           │   │   │   └── StudentMapper.java
 │   │   │           │   │   ├── BatchService.java
+│   │   │           │   │   ├── CountryService.java
 │   │   │           │   │   ├── GeoAreaService.java
 │   │   │           │   │   ├── GuardianService.java
 │   │   │           │   │   ├── PersonAddressService.java
@@ -897,6 +902,7 @@ ums/
 │   │   │           │   │   └── StudentService.java
 │   │   │           │   ├── domain/
 │   │   │           │   │   ├── Batch.java
+│   │   │           │   │   ├── Country.java
 │   │   │           │   │   ├── GeoArea.java
 │   │   │           │   │   ├── Guardian.java
 │   │   │           │   │   ├── Person.java
@@ -906,6 +912,7 @@ ums/
 │   │   │           │   │   └── StudentGuardian.java
 │   │   │           │   ├── infrastructure/
 │   │   │           │   │   ├── BatchRepository.java
+│   │   │           │   │   ├── CountryRepository.java
 │   │   │           │   │   ├── GeoAreaRepository.java
 │   │   │           │   │   ├── GuardianRepository.java
 │   │   │           │   │   ├── PersonAddressRepository.java
@@ -984,6 +991,7 @@ ums/
 │   │   │           │   │   │   │   ├── CurrentUserResponse.java
 │   │   │           │   │   │   │   ├── DeviceInfo.java
 │   │   │           │   │   │   │   ├── ForgotPasswordRequest.java
+│   │   │           │   │   │   │   ├── LanguageRequest.java
 │   │   │           │   │   │   │   ├── LoginRequest.java
 │   │   │           │   │   │   │   ├── QrLoginResponse.java
 │   │   │           │   │   │   │   ├── RefreshTokenRequest.java
@@ -1203,7 +1211,8 @@ ums/
 │   │       │   │   ├── V1__init_schema.sql
 │   │       │   │   ├── V2__seed_permissions.sql
 │   │       │   │   ├── V3__seed_roles_and_admin.sql
-│   │       │   │   └── V4__seed_geo_areas.sql
+│   │       │   │   ├── V4__seed_geo_areas.sql
+│   │       │   │   └── V5__seed_countries.sql
 │   │       │   └── testdata/
 │   │       │       └── V1000__sample_data.sql
 │   │       ├── i18n/
@@ -1223,6 +1232,8 @@ ums/
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
+├── docs/
+│   └── Cambodia-Areas.xlsx        # every province, district, commune and village (Khmer + English), from geo_areas
 ├── build.gradle
 ├── gradle/
 │   └── wrapper/
@@ -1231,6 +1242,9 @@ ums/
 ├── gradlew
 ├── gradlew.bat
 ├── settings.gradle
+├── tools/
+│   ├── CountrySync.java           # ./gradlew countrySync: writes a migration when countries change
+│   └── GeoSync.java               # ./gradlew geoSync: writes a migration when the ministry updates the areas
 ├── ums_schema.sql                 # copy of V1__init_schema.sql
 ├── UMS_V2__seed_permissions.sql   # copy of V2__seed_permissions.sql
 ├── PROJECT_STRUCTURE.md

@@ -4,5 +4,6 @@ public record AssetCategoryResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         Integer depreciationYears) {
 }

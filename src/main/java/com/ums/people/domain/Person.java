@@ -36,8 +36,9 @@ public class Person extends BaseEntity {
     @Column(name = "dob")
     private LocalDate dob;
 
-    @Column(name = "nationality")
-    private String nationality;
+    /** Country code (KH, TH …) of the person's nationality; empty = Cambodian. */
+    @Column(name = "nationality_code")
+    private String nationalityCode;
 
     @Column(name = "national_id")
     private String nationalId;

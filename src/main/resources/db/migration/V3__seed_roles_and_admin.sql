@@ -2,15 +2,15 @@
 -- V3__seed_roles_and_admin.sql  -  system roles and the first admin
 -- =====================================================================
 
-INSERT INTO roles (code, name, description, is_system) VALUES
-    ('SUPER_ADMIN', 'Super Administrator', 'Full access to every module', TRUE),
-    ('ADMIN',       'Administrator',       'University administration staff', TRUE),
-    ('REGISTRAR',   'Registrar',           'Admissions, enrollment and records', TRUE),
-    ('ACCOUNTANT',  'Accountant',          'Fees, invoices and payments', TRUE),
-    ('LECTURER',    'Lecturer',            'Teaching staff', TRUE),
-    ('STUDENT',     'Student',             'Enrolled students', TRUE),
-    ('GUARDIAN',    'Guardian',            'Parents and guardians', TRUE),
-    ('APPLICANT',   'Applicant',           'Prospective students', TRUE)
+INSERT INTO roles (code, name, name_kh, description, description_kh, is_system) VALUES
+    ('SUPER_ADMIN', 'Super Administrator', 'អ្នកគ្រប់គ្រងប្រព័ន្ធជាន់ខ្ពស់', 'Full access to every module',        'មានសិទ្ធិគ្រប់ផ្នែកទាំងអស់',            TRUE),
+    ('ADMIN',       'Administrator',       'អ្នកគ្រប់គ្រងរដ្ឋបាល',          'University administration staff',    'បុគ្គលិករដ្ឋបាលសាកលវិទ្យាល័យ',        TRUE),
+    ('REGISTRAR',   'Registrar',           'ការិយាល័យសិក្សា',              'Admissions, enrollment and records', 'ការចុះឈ្មោះចូលរៀន ការសិក្សា និងឯកសារ', TRUE),
+    ('ACCOUNTANT',  'Accountant',          'គណនេយ្យករ',                   'Fees, invoices and payments',        'ថ្លៃសិក្សា វិក្កយបត្រ និងការបង់ប្រាក់',   TRUE),
+    ('LECTURER',    'Lecturer',            'សាស្ត្រាចារ្យ',                 'Teaching staff',                     'បុគ្គលិកបង្រៀន',                     TRUE),
+    ('STUDENT',     'Student',             'និស្សិត',                      'Enrolled students',                  'និស្សិតកំពុងសិក្សា',                   TRUE),
+    ('GUARDIAN',    'Guardian',            'អាណាព្យាបាល',                  'Parents and guardians',              'ឪពុកម្តាយ ឬអាណាព្យាបាល',              TRUE),
+    ('APPLICANT',   'Applicant',           'បេក្ខជន',                      'Prospective students',               'អ្នកដាក់ពាក្យចូលរៀន',                  TRUE)
 ON CONFLICT (code) DO NOTHING;
 
 -- SUPER_ADMIN gets every permission

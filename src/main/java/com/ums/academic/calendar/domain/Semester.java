@@ -24,6 +24,9 @@ public class Semester extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     /** Order within the academic year (1, 2, ...); unique per year. */
     @Column(name = "semester_no", nullable = false)
     private int semesterNo;

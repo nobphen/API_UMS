@@ -62,6 +62,8 @@ public class RoleServiceImpl implements RoleService {
         role.setCode(request.code());
         role.setName(request.name().trim());
         role.setDescription(request.description());
+        role.setNameKh(blankToNull(request.nameKh()));
+        role.setDescriptionKh(blankToNull(request.descriptionKh()));
         role.setPermissions(permissions);
         roleRepository.save(role);
         return toResponse(role);
@@ -91,6 +93,8 @@ public class RoleServiceImpl implements RoleService {
         }
         role.setName(request.name().trim());
         role.setDescription(request.description());
+        role.setNameKh(blankToNull(request.nameKh()));
+        role.setDescriptionKh(blankToNull(request.descriptionKh()));
 
         // Holders get the new permissions at their next token refresh
         userRoleRepository.findUserIdsByRoleId(id).forEach(permissionCacheService::evict);
@@ -147,6 +151,11 @@ public class RoleServiceImpl implements RoleService {
             throw new BusinessException("Unknown permission codes: " + String.join(", ", unknown));
         }
         return permissions;
+    }
+
+    /** An empty Khmer name means "not translated": the app then shows the English one. */
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     /** Stops an admin with ROLE_MANAGE from making a role more powerful than themselves. */

@@ -37,9 +37,15 @@ public class Staff extends SoftDeletableEntity {
     @Column(name = "position")
     private String position;
 
+    @Column(name = "position_kh")
+    private String positionKh;
+
     /** Dr., Prof., Assoc. Prof. */
     @Column(name = "academic_title")
     private String academicTitle;
+
+    @Column(name = "academic_title_kh")
+    private String academicTitleKh;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "staff_type", nullable = false)

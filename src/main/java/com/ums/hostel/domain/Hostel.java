@@ -21,6 +21,9 @@ public class Hostel extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     /** Who may live there. */
     @Enumerated(EnumType.STRING)
     @Column(name = "gender_type", nullable = false)

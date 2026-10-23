@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
 
 public record SurveyRequest(
         @NotBlank @Size(max = 200) String title,
+        @Size(max = 200) String titleKh,
         @NotNull Survey.SurveyType surveyType,
         Long semesterId,
         Boolean anonymous,   // empty = true

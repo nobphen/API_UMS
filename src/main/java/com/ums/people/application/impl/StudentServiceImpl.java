@@ -6,6 +6,7 @@ import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
+import com.ums.people.application.CountryService;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.StudentService;
 import com.ums.people.application.mapper.StudentMapper;
@@ -34,6 +35,7 @@ public class StudentServiceImpl implements StudentService {
     private final StaffRepository staffRepository;
     private final StudentMapper studentMapper;
     private final PersonAddressService personAddressService;
+    private final CountryService countryService;
     private final UserService userService;
 
     @Override
@@ -46,7 +48,7 @@ public class StudentServiceImpl implements StudentService {
         UserService.NewAccount account = userService.createAccount(
                 studentCode, request.email(), request.phone(), User.UserType.STUDENT, STUDENT_ROLE);
 
-        Person person = personRepository.save(studentMapper.toPerson(request));
+        Person person = newPerson(request);
         personAddressService.replaceAll(person, request.addresses());
 
         Student student = studentMapper.toStudent(request);
@@ -72,7 +74,7 @@ public class StudentServiceImpl implements StudentService {
         Person person = staffRepository.findByUserIdAndDeletedAtIsNull(userId).map(Staff::getPerson)
                 .or(() -> studentRepository.findByUserIdAndDeletedAtIsNullOrderByAdmissionDateDesc(userId).stream()
                         .findFirst().map(Student::getPerson))
-                .orElseGet(() -> personRepository.save(studentMapper.toPerson(request)));
+                .orElseGet(() -> newPerson(request));
         personAddressService.replaceAll(person, request.addresses());   // sent = updated; left out = kept
 
         Student student = studentMapper.toStudent(request);
@@ -131,6 +133,13 @@ public class StudentServiceImpl implements StudentService {
 
     private StudentResponse toResponse(Student student) {
         return studentMapper.toResponse(student, personAddressService.getByPerson(student.getPerson().getId()));
+    }
+
+    /** A new person from the form; an empty nationality means Cambodian, an unknown code is refused. */
+    private Person newPerson(StudentRequest request) {
+        Person person = studentMapper.toPerson(request);
+        person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());
+        return personRepository.save(person);
     }
 
     private Student findStudent(Long id) {

@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public record AdmissionIntakeRequest(
         @NotNull Long academicYearId,
         @NotBlank @Size(max = 100) String name,
+        @Size(max = 100) String nameKh,
         @NotNull LocalDate openDate,
         @NotNull LocalDate closeDate) {
 }

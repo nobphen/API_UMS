@@ -131,6 +131,11 @@ public class UserServiceImpl implements UserService {
         user.setFailedLoginCount(0);
     }
 
+    @Override
+    public void setPreferredLanguage(Long userId, String language) {
+        getUser(userId).setPreferredLanguage(language);
+    }
+
     /// ROLES OF A USER ----------------------------------------------
 
     @Override

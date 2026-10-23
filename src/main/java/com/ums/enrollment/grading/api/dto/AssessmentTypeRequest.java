@@ -5,5 +5,6 @@ import jakarta.validation.constraints.Size;
 
 public record AssessmentTypeRequest(
         @NotBlank @Size(max = 20) String code,   // e.g. QUIZ, MIDTERM
-        @NotBlank @Size(max = 50) String name) {
+        @NotBlank @Size(max = 50) String name,
+        @Size(max = 50) String nameKh) {
 }

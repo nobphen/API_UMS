@@ -20,6 +20,9 @@ public class FeeType extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     @Column(name = "is_refundable", nullable = false)
     private boolean refundable = false;
 }

@@ -8,7 +8,9 @@ import java.util.Set;
 /** The code can't change (code and SQL refer to it); everything else can. */
 public record RoleUpdateRequest(
         @NotBlank @Size(max = 100) String name,
+        @Size(max = 100) String nameKh,
         String description,
+        String descriptionKh,
 
         @Pattern(regexp = "^(ACTIVE|INACTIVE)$", message = "must be ACTIVE or INACTIVE")
         String status,              // INACTIVE: users keep the role, but it grants nothing

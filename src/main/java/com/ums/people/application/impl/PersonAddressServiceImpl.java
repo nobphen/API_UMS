@@ -4,11 +4,14 @@ import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
 import com.ums.people.api.dto.AddressRequest;
 import com.ums.people.api.dto.AddressResponse;
+import com.ums.people.application.CountryService;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.mapper.GeoAreaMapper;
+import com.ums.people.domain.Country;
 import com.ums.people.domain.GeoArea;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.PersonAddress;
+import com.ums.people.infrastructure.CountryRepository;
 import com.ums.people.infrastructure.GeoAreaRepository;
 import com.ums.people.infrastructure.PersonAddressRepository;
 import com.ums.people.infrastructure.PersonRepository;
@@ -27,14 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PersonAddressServiceImpl implements PersonAddressService {
 
-    private static final String CAMBODIA = "Cambodia";
-
     /** How Cambodians write these units in English addresses. */
     private static final Map<String, String> ENGLISH_UNIT = Map.of("Quarter", "Sangkat", "Section", "Khan", "Capital", "");
 
     private final PersonAddressRepository personAddressRepository;
     private final PersonRepository personRepository;
     private final GeoAreaRepository geoAreaRepository;
+    private final CountryRepository countryRepository;
+    private final CountryService countryService;
     private final GeoAreaMapper geoAreaMapper;
 
     @Override
@@ -79,11 +82,11 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         address.setHouseNo(blankToNull(request.houseNo()));
         address.setStreet(blankToNull(request.street()));
         address.setAddressLine(blankToNull(request.addressLine()));
-        String country = request.country() == null || request.country().isBlank() ? CAMBODIA : request.country().trim();
-        address.setCountry(country);
+        String countryCode = countryService.require(request.countryCode()).getCode();   // empty = KH
+        address.setCountryCode(countryCode);
 
         if (request.areaId() != null) {
-            if (!CAMBODIA.equalsIgnoreCase(country)) {
+            if (!Country.CAMBODIA.equals(countryCode)) {
                 throw new BusinessException("Provinces, districts, communes and villages are only for addresses in Cambodia");
             }
             // Fill every level from the smallest area chosen, so they always belong together
@@ -138,14 +141,18 @@ public class PersonAddressServiceImpl implements PersonAddressService {
             kh.add(a.getAddressLine());
             en.add(a.getAddressLine());
         }
-        if (!CAMBODIA.equalsIgnoreCase(a.getCountry())) {
-            kh.add(a.getCountry());
-            en.add(a.getCountry());
+        Country country = countryRepository.findById(a.getCountryCode()).orElse(null);
+        String countryKh = country == null ? a.getCountryCode() : country.getNameKh();
+        String countryEn = country == null ? a.getCountryCode() : country.getNameEn();
+        if (!Country.CAMBODIA.equals(a.getCountryCode())) {   // the country is written out only for addresses abroad
+            kh.add(countryKh);
+            en.add(countryEn);
         }
 
-        return new AddressResponse(a.getId(), a.getType(), a.getHouseNo(), a.getStreet(),
+        return new AddressResponse(a.getId(), a.getType(), a.getCountryCode(), countryKh, countryEn,
+                a.getHouseNo(), a.getStreet(),
                 area(a.getVillage()), area(a.getCommune()), area(a.getDistrict()), area(a.getProvince()),
-                a.getCountry(), a.getAddressLine(), String.join(" ", kh), String.join(", ", en));
+                a.getAddressLine(), String.join(" ", kh), String.join(", ", en));
     }
 
     private AddressResponse.Area area(GeoArea area) {

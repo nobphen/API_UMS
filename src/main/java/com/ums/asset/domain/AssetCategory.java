@@ -19,6 +19,9 @@ public class AssetCategory extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     /** Useful life used for depreciation; null = not depreciated. */
     @Column(name = "depreciation_years")
     private Integer depreciationYears;

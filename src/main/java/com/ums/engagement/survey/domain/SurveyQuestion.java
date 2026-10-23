@@ -27,6 +27,9 @@ public class SurveyQuestion extends BaseEntity {
     @Column(name = "question_text", nullable = false)
     private String questionText;
 
+    @Column(name = "question_text_kh")
+    private String questionTextKh;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", nullable = false)
     private QuestionType questionType;

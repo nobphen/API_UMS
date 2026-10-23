@@ -12,7 +12,7 @@ public record PersonResponse(
         String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        String nationality,
+        String nationalityCode,
         String nationalId,
         String phone,
         String email,

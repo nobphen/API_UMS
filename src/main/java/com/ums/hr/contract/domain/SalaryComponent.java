@@ -22,6 +22,9 @@ public class SalaryComponent extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "component_type", nullable = false)
     private ComponentType componentType;

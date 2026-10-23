@@ -20,6 +20,9 @@ public class LeaveType extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     /** A supporting document (e.g. medical certificate) must be attached. */
     @Column(name = "requires_document", nullable = false)
     private boolean requiresDocument = false;

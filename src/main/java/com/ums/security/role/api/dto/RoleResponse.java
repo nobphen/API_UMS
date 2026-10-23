@@ -6,7 +6,9 @@ public record RoleResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         String description,
+        String descriptionKh,
         boolean system,             // made by the seed scripts: can't be deleted
         String status,
         List<String> permissions,   // permission codes, sorted

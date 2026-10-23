@@ -39,4 +39,7 @@ public class Course extends SoftDeletableEntity {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "description_kh")
+    private String descriptionKh;
 }

@@ -32,6 +32,9 @@ public interface UserService {
     /** Also clears the wrong-password count that locks an account after 5 tries. */
     void unlock(Long userId);
 
+    /** "km" or "en". The app gets it in the next access token; notifications and emails use it straight away. */
+    void setPreferredLanguage(Long userId, String language);
+
     /// ROLES OF A USER (takes effect at the user's next token refresh, at most 15 minutes) ----------
 
     List<UserRoleResponse> getRoles(Long userId);

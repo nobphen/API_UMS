@@ -14,5 +14,6 @@ public record CourseRequest(
         @NotNull @Positive Integer credits,
         @PositiveOrZero Integer theoryHours,   // empty = 0
         @PositiveOrZero Integer labHours,      // empty = 0
-        String description) {
+        String description,
+        String descriptionKh) {
 }

@@ -52,8 +52,8 @@ public class PersonAddress extends BaseEntity {
     @JoinColumn(name = "province_id")
     private GeoArea province;
 
-    @Column(name = "country", nullable = false)
-    private String country = "Cambodia";
+    @Column(name = "country_code", nullable = false)
+    private String countryCode = Country.CAMBODIA;
 
     /** An address outside Cambodia, or extra detail the lists don't cover. */
     @Column(name = "address_line")

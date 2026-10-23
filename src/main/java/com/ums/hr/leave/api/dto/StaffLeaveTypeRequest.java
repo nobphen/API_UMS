@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 public record StaffLeaveTypeRequest(
         @NotBlank @Size(max = 20) String code,
         @NotBlank @Size(max = 100) String name,
+        @Size(max = 100) String nameKh,
         @PositiveOrZero BigDecimal daysPerYear,   // empty = no limit
         Boolean paid) {   // empty = true
 }

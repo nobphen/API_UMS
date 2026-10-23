@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public record SemesterRequest(
         @NotNull Long academicYearId,
         @NotBlank @Size(max = 50) String name,
+        @Size(max = 50) String nameKh,
         @NotNull @Positive Integer semesterNo,
         @NotNull LocalDate startDate,
         @NotNull LocalDate endDate,

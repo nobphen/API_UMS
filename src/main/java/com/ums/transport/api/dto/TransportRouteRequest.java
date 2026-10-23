@@ -9,6 +9,7 @@ import java.time.LocalTime;
 public record TransportRouteRequest(
         @NotBlank @Size(max = 20) String code,
         @NotBlank @Size(max = 100) String name,
+        @Size(max = 100) String nameKh,
         Long vehicleId,
         LocalTime morningDeparture,
         LocalTime eveningDeparture,

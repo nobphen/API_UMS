@@ -6,6 +6,7 @@ import java.time.LocalDate;
 public record PayrollPeriodResponse(
         Long id,
         String name,
+        String nameKh,
         LocalDate startDate,
         LocalDate endDate,
         PayrollPeriod.Status status,

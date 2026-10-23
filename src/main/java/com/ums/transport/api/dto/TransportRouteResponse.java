@@ -7,6 +7,7 @@ public record TransportRouteResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         Long vehicleId,
         LocalTime morningDeparture,
         LocalTime eveningDeparture,

@@ -30,7 +30,7 @@ public record StaffRequest(
         @Size(max = 80) String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        @Size(max = 50) String nationality,
+        @Pattern(regexp = "^[A-Z]{2}$", message = "must be a country code such as KH") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
         @Email @Size(max = 150) String email,
@@ -38,7 +38,9 @@ public record StaffRequest(
 
         Long departmentId,
         @Size(max = 100) String position,
+        @Size(max = 100) String positionKh,
         @Size(max = 50) String academicTitle,   // Dr., Prof., Assoc. Prof.
+        @Size(max = 50) String academicTitleKh,
         @NotNull Staff.StaffType staffType,
         LocalDate hireDate) {
 }

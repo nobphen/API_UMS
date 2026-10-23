@@ -7,6 +7,7 @@ public record ScholarshipResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         Scholarship.DiscountType discountType,
         BigDecimal value,
         Long appliesToFeeTypeId) {

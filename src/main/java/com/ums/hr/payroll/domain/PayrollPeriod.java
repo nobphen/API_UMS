@@ -19,6 +19,9 @@ public class PayrollPeriod extends BaseEntity {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 

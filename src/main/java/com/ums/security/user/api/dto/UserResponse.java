@@ -13,5 +13,6 @@ public record UserResponse(
         int failedLoginCount,
         OffsetDateTime lastLoginAt,
         int sessionTtlDays,
-        boolean mustChangePassword) {
+        boolean mustChangePassword,
+        String preferredLanguage) {
 }

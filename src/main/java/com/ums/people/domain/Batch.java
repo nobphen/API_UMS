@@ -21,6 +21,9 @@ public class Batch extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     @Column(name = "start_year", nullable = false)
     private int startYear;
 }

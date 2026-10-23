@@ -19,8 +19,14 @@ public class Announcement extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_kh")
+    private String titleKh;
+
     @Column(name = "content", nullable = false)
     private String content;
+
+    @Column(name = "content_kh")
+    private String contentKh;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false)

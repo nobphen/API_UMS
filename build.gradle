@@ -96,3 +96,29 @@ tasks.register('syncSchemaCopies') {
 tasks.named('processResources') {
     dependsOn 'syncSchemaCopies'
 }
+
+// Reference-data sync tools: compare the newest official list with the database and write a Flyway migration
+// with only the differences. Options: -Psource=<file or folder>  -PdryRun (report only)  -Pout=<folder>
+//   ./gradlew geoSync       provinces, districts, communes, villages (tools/GeoSync.java; default: latest Pumi data,
+//                           or a ministry CSV with columns code,name_kh,name_en,unit_kh,unit_en)
+//   ./gradlew countrySync   countries (tools/CountrySync.java; default: latest Unicode CLDR names,
+//                           or a CSV with columns code,name_en,name_kh[,nationality_en,nationality_kh])
+def registerSyncTool = { String taskName, String script, String text ->
+    tasks.register(taskName, Exec) {
+        group = 'ums tools'
+        description = text
+        def classpath = sourceSets.main.runtimeClasspath
+        def javaHome = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+        def options = []
+        if (project.hasProperty('source')) options += ['--source', project.property('source')]
+        if (project.hasProperty('out')) options += ['--out', project.property('out')]
+        if (project.hasProperty('dryRun')) options += ['--dry-run']
+        workingDir = projectDir
+        doFirst {
+            commandLine([javaHome.get().executablePath.asFile.absolutePath, '-Dstdout.encoding=UTF-8',
+                         '-cp', classpath.asPath, script] + options)
+        }
+    }
+}
+registerSyncTool('geoSync', 'tools/GeoSync.java', 'Writes a migration that brings geo_areas up to date with the newest official gazetteer.')
+registerSyncTool('countrySync', 'tools/CountrySync.java', 'Writes a migration that brings countries up to date with the newest official list.')

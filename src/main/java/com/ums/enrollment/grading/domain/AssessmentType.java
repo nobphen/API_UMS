@@ -19,4 +19,7 @@ public class AssessmentType extends BaseEntity {
 
     @Column(name = "name", nullable = false)
     private String name;
+
+    @Column(name = "name_kh")
+    private String nameKh;
 }

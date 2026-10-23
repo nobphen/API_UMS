@@ -50,6 +50,7 @@ public class JwtServiceImpl implements JwtService {
                 .claim("user_type", user.getUserType().name())
                 .claim("authorities", List.copyOf(authorities))
                 .claim("pwd_change", user.isMustChangePassword())   // SessionActivityFilter allows only a password change
+                .claim("lang", user.getPreferredLanguage())          // the app shows this language after login
                 .build();
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }

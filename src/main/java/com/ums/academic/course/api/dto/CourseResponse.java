@@ -9,5 +9,6 @@ public record CourseResponse(
         int credits,
         int theoryHours,
         int labHours,
-        String description) {
+        String description,
+        String descriptionKh) {
 }

@@ -6,13 +6,15 @@ import com.ums.people.domain.PersonAddress;
 public record AddressResponse(
         Long id,
         PersonAddress.Type type,
+        String countryCode,
+        String countryNameKh,
+        String countryNameEn,
         String houseNo,
         String street,
         Area village,
         Area commune,
         Area district,
         Area province,
-        String country,
         String addressLine,
         String fullKh,    // ផ្ទះលេខ 12, ផ្លូវ 271, ភូមិ…, សង្កាត់…, ខណ្ឌ…, រាជធានីភ្នំពេញ
         String fullEn) {  // No. 12, St. 271, … Village, … Sangkat, … Khan, Phnom Penh

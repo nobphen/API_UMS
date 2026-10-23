@@ -9,7 +9,9 @@ import java.time.OffsetDateTime;
 
 public record EventRequest(
         @NotBlank @Size(max = 200) String title,
+        @Size(max = 200) String titleKh,
         String description,
+        String descriptionKh,
         @NotNull Event.EventType eventType,
         @NotNull OffsetDateTime startAt,
         OffsetDateTime endAt,

@@ -52,6 +52,10 @@ public class User extends BaseEntity {
     @Column(name = "password_changed_at")
     private OffsetDateTime passwordChangedAt;
 
+    /** "km" or "en": the language of notifications and emails sent when the user is not in the app. */
+    @Column(name = "preferred_language", nullable = false)
+    private String preferredLanguage = "km";
+
     public enum UserType { STUDENT, STAFF, GUARDIAN, APPLICANT, ADMIN }
 
     public enum Status { ACTIVE, LOCKED, DISABLED }

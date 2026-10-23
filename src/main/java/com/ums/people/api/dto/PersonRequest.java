@@ -4,6 +4,7 @@ import com.ums.people.domain.Person;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
@@ -15,7 +16,7 @@ public record PersonRequest(
         @Size(max = 80) String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        @Size(max = 50) String nationality,
+        @Pattern(regexp = "^[A-Z]{2}$", message = "must be a country code such as KH") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
         @Email @Size(max = 150) String email,

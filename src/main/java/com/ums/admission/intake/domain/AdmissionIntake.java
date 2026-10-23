@@ -23,6 +23,9 @@ public class AdmissionIntake extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     @Column(name = "open_date", nullable = false)
     private LocalDate openDate;
 

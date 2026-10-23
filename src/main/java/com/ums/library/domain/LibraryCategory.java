@@ -22,6 +22,9 @@ public class LibraryCategory extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "name_kh")
+    private String nameKh;
+
     /** Empty for a top-level category. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")

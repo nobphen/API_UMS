@@ -57,7 +57,25 @@ province; abroad it sends `country` + `addressLine`. Areas come from `geo_areas`
 (github.com/dwilkie/pumi, MIT). Dropdowns: `GET /api/v1/geo-areas` (provinces), `?parentId=` (areas inside one),
 `&q=` (search by Khmer or English name), `GET /api/v1/geo-areas/{id}/path`. Admins with GEO_AREA_MANAGE add areas
 (`POST`) and rename or deactivate them (`PUT /{id}`). `GET|PUT /api/v1/persons/{id}/addresses` reads or replaces
-a person's addresses.
+a person's addresses. Read-only views `provinces`, `districts`, `communes`, `villages` show each level with the
+names above it (for DBeaver and reports), and a trigger keeps the tree consistent (parent level, code prefix).
+
+When the Ministry of Interior updates the areas, run `./gradlew geoSync` (latest Pumi data) or
+`./gradlew geoSync -Psource=path/to/file.csv` (columns `code,name_kh,name_en,unit_kh,unit_en`). It compares the
+official list with `geo_areas` (`DB_URL`/`DB_USERNAME`/`DB_PASSWORD`, default local dev) and writes the next
+`V{n}__update_geo_areas_{date}.sql` with only the new, renamed, restored and abolished areas, and reports how many
+addresses use each abolished one. Abolished areas are switched off, never deleted. `-PdryRun` only reports.
+Commit the file and deploy: Flyway applies it once on every server. Never edit `V4__seed_geo_areas.sql` after deployment.
+
+Countries: `countries` holds all 249 ISO 3166-1 countries (Khmer + English names and nationalities), seeded by
+`V5__seed_countries.sql` from country-list (github.com/umpirsky/country-list, MIT, Unicode CLDR).
+`GET /api/v1/countries` (Cambodia first; `?withNationality=true` for the Nationality list, `&q=` to search).
+When country names change (e.g. Turkey → Türkiye) or a country is added, run `./gradlew countrySync` (latest Unicode
+CLDR names) or `./gradlew countrySync -Psource=countries.csv` (`code,name_en,name_kh[,nationality_en,nationality_kh]`).
+Like `geoSync`, it writes the next `V{n}__update_countries_{date}.sql` with only the differences, keeps the existing
+nationalities (CLDR has none), warns when a new country needs them, and never deletes a country. `-PdryRun` only reports.
+Persons send `nationalityCode` (empty = KH); addresses send `countryCode` (empty = KH). Only KH addresses may use
+the province → village lists (checked by the service and by a database CHECK); others need `addressLine`.
 
 Devices (`/api/v1/user-sessions`): `GET /me`, `DELETE /me/{id}`, `POST /me/terminate-others`;
 admins: `GET /users/{userId}`, `POST /users/{userId}/terminate-all`.

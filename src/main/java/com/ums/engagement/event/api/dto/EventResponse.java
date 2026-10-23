@@ -6,7 +6,9 @@ import java.time.OffsetDateTime;
 public record EventResponse(
         Long id,
         String title,
+        String titleKh,
         String description,
+        String descriptionKh,
         Event.EventType eventType,
         OffsetDateTime startAt,
         OffsetDateTime endAt,

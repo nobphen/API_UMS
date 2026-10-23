@@ -4,5 +4,6 @@ public record LibraryCategoryResponse(
         Long id,
         String code,
         String name,
+        String nameKh,
         Long parentId) {
 }

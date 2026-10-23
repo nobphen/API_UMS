@@ -19,8 +19,14 @@ public class Event extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_kh")
+    private String titleKh;
+
     @Column(name = "description")
     private String description;
+
+    @Column(name = "description_kh")
+    private String descriptionKh;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)

@@ -6,6 +6,7 @@ public record SemesterResponse(
         Long id,
         Long academicYearId,
         String name,
+        String nameKh,
         int semesterNo,
         LocalDate startDate,
         LocalDate endDate,

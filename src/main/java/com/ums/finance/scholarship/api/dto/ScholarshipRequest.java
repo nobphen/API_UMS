@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 public record ScholarshipRequest(
         @NotBlank @Size(max = 30) String code,
         @NotBlank @Size(max = 150) String name,
+        @Size(max = 150) String nameKh,
         @NotNull Scholarship.DiscountType discountType,
         @NotNull @PositiveOrZero BigDecimal value,   // a percentage (PERCENT) or an amount (FIXED)
         Long appliesToFeeTypeId) {   // empty = the whole invoice

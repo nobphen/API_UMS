@@ -5,6 +5,7 @@ import com.ums.security.auth.api.dto.ChangePasswordRequest;
 import com.ums.security.auth.api.dto.CurrentUserResponse;
 import com.ums.security.auth.api.dto.DeviceInfo;
 import com.ums.security.auth.api.dto.ForgotPasswordRequest;
+import com.ums.security.auth.api.dto.LanguageRequest;
 import com.ums.security.auth.api.dto.LoginRequest;
 import com.ums.security.auth.api.dto.QrLoginResponse;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
@@ -14,6 +15,7 @@ import com.ums.security.auth.api.dto.TokenResponse;
 import com.ums.security.auth.application.AuthService;
 import com.ums.security.auth.application.PasswordResetService;
 import com.ums.security.auth.application.QrLoginService;
+import com.ums.security.user.application.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -39,6 +42,7 @@ public class AuthController {
     private final AuthService authService;
     private final QrLoginService qrLoginService;
     private final PasswordResetService passwordResetService;
+    private final UserService userService;
 
     /** Applicants sign up here; the new account is logged in straight away. */
     @PostMapping("/register")
@@ -71,7 +75,15 @@ public class AuthController {
                 jwt.getClaimAsString("user_type"),
                 Long.valueOf(Objects.requireNonNull(jwt.getClaimAsString("sid"))),
                 jwt.getClaimAsStringList("authorities"),
-                Boolean.TRUE.equals(jwt.getClaimAsBoolean("pwd_change"))));
+                Boolean.TRUE.equals(jwt.getClaimAsBoolean("pwd_change")),
+                Objects.requireNonNullElse(jwt.getClaimAsString("lang"), "km")));
+    }
+
+    /** The user switches between Khmer and English; notifications and emails follow it too. */
+    @PutMapping("/me/language")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setLanguage(@Valid @RequestBody LanguageRequest request, @AuthenticationPrincipal Jwt jwt) {
+        userService.setPreferredLanguage(Long.valueOf(Objects.requireNonNull(jwt.getSubject())), request.language());
     }
 
     /// PASSWORD: change (logged in) · forgot → reset (not logged in, code by email)

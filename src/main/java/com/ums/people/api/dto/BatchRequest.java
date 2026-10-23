@@ -7,5 +7,6 @@ import jakarta.validation.constraints.Size;
 public record BatchRequest(
         @NotNull Long programId,
         @NotBlank @Size(max = 50) String name,
+        @Size(max = 50) String nameKh,
         @NotNull Integer startYear) {
 }

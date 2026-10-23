@@ -13,6 +13,8 @@ public record RoleRequest(
         String code,
 
         @NotBlank @Size(max = 100) String name,
+        @Size(max = 100) String nameKh,
         String description,
+        String descriptionKh,
         Set<String> permissions) {   // permission codes, e.g. BOOK_MANAGE
 }

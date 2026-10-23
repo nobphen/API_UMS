@@ -19,6 +19,9 @@ public class Survey extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "title_kh")
+    private String titleKh;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "survey_type", nullable = false)
     private SurveyType surveyType;
