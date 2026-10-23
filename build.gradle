@@ -1,0 +1,98 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ums'
+version = '0.0.1-SNAPSHOT'
+description = 'University Management System'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Security patches: override the Jackson versions managed by Spring Boot 4.1.0, which have known
+// vulnerabilities (jackson-databind / jackson-core). Remove once Spring Boot ships these or newer.
+ext['jackson-bom.version'] = '3.1.8'       // Jackson 3: used by Spring Boot for JSON
+ext['jackson-2-bom.version'] = '2.21.8'    // Jackson 2: used by springdoc (swagger-core)
+
+ext {
+    mapstructVersion = '1.6.3'
+    springdocVersion = '3.1.0'
+    springModulithVersion = '2.1.0'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
+    implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    runtimeOnly 'org.postgresql:postgresql'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+    testImplementation 'org.springframework.modulith:spring-modulith-docs'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Keeps the readable copies in the project root (ums_schema.sql, UMS_V2__seed_permissions.sql) the same as the
+// Flyway scripts. Runs before every build, so the copies never fall behind.
+def schemaCopies = [
+        'src/main/resources/db/migration/V1__init_schema.sql'     : 'ums_schema.sql',
+        'src/main/resources/db/migration/V2__seed_permissions.sql': 'UMS_V2__seed_permissions.sql',
+]
+tasks.register('syncSchemaCopies') {
+    group = 'build'
+    description = 'Copies V1 and V2 Flyway scripts to ums_schema.sql and UMS_V2__seed_permissions.sql in the project root.'
+    def pairs = schemaCopies.collect { from, to -> [file(from), file(to)] }
+    inputs.files(pairs.collect { it[0] })
+    outputs.files(pairs.collect { it[1] })
+    doLast {
+        pairs.each { from, to ->
+            java.nio.file.Files.copy(from.toPath(), to.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+}
+tasks.named('processResources') {
+    dependsOn 'syncSchemaCopies'
+}

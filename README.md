@@ -50,6 +50,15 @@ several student records, one per program (Bachelor → Master → PhD, or a doub
 `POST /api/v1/students/{id}/programs` adds a program to an existing student, and `GET /api/v1/students/me`
 lists the logged-in user's programs.
 
+Addresses: every person can have a BIRTH_PLACE, PERMANENT and CURRENT address (`person_addresses`). In Cambodia the app
+sends only the smallest area chosen (`areaId`, usually the village) and the server fills the commune, district and
+province; abroad it sends `country` + `addressLine`. Areas come from `geo_areas` (25 provinces, 210 districts,
+1,652 communes, 14,578 villages with official codes), seeded by `V4__seed_geo_areas.sql` from the Pumi gazetteer
+(github.com/dwilkie/pumi, MIT). Dropdowns: `GET /api/v1/geo-areas` (provinces), `?parentId=` (areas inside one),
+`&q=` (search by Khmer or English name), `GET /api/v1/geo-areas/{id}/path`. Admins with GEO_AREA_MANAGE add areas
+(`POST`) and rename or deactivate them (`PUT /{id}`). `GET|PUT /api/v1/persons/{id}/addresses` reads or replaces
+a person's addresses.
+
 Devices (`/api/v1/user-sessions`): `GET /me`, `DELETE /me/{id}`, `POST /me/terminate-others`;
 admins: `GET /users/{userId}`, `POST /users/{userId}/terminate-all`.
 Admin account actions (`/api/v1/users/{id}`): `reset-password`, `lock`, `unlock`.

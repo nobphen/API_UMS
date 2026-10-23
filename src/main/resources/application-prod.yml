@@ -1,0 +1,8 @@
+# All connection settings come from environment variables (see .env.example).
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    com.ums: INFO
