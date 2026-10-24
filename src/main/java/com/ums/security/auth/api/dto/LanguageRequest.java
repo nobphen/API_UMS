@@ -5,6 +5,6 @@ import jakarta.validation.constraints.Pattern;
 
 public record LanguageRequest(
         @NotBlank
-        @Pattern(regexp = "^(km|en)$", message = "must be km or en")
+        @Pattern(regexp = "^(km|en)$", message = "{validation.language}")
         String language) {
 }

@@ -35,6 +35,36 @@ In IntelliJ, pick the matching `UMS [<profile>]` run configuration.
 
 The dev profile also loads `db/testdata`: a super admin (`admin` / `Admin@12345`) and one program with a batch.
 
+First administrator on a new server (SIT, UAT, PROD): set `UMS_ADMIN_USERNAME`, `UMS_ADMIN_PASSWORD` (12+ characters)
+and `UMS_ADMIN_EMAIL`, then start the app. `FirstAdminSetup` creates the SUPER_ADMIN only when none exists yet (it does
+nothing on later starts), with a password change required at first login. Remove the variables afterwards.
+
+## Permissions on endpoints
+
+Every endpoint that needs more than a login names its permission code with `@RequirePermission`:
+
+```java
+@PostMapping
+@RequirePermission(PeoplePermissions.STUDENT_CREATE)                        // one code
+public ApiResponse<NewStudentResponse> create(...)
+
+@RequirePermission({PeoplePermissions.STUDENT_VIEW, PeoplePermissions.STAFF_VIEW})   // any one of them
+```
+
+It is short for `@PreAuthorize("hasAnyAuthority(...)")`; the codes are constants from the module's `*Permissions`
+class (matching `V2__seed_permissions.sql`), so a typo does not compile. Users get permissions from their roles;
+a call without the permission answers 403 in the caller's language. `SecurityConfig` itself only decides what is public
+and that everything else needs a login.
+
+## Languages (Khmer / English)
+
+Every message the API sends (errors, field checks, the password-reset email) is a key in
+`src/main/resources/i18n/messages.properties` (English) and `messages_km.properties` (Khmer).
+The language of an answer: the app's `Accept-Language` header (`km` or `en`), else the logged-in user's saved
+language (`PUT /api/v1/auth/me/language`), else `DEFAULT_LANGUAGE` (km). Emails use the user's saved language.
+In code, throw `new BusinessException("error.some.key", value…)` and add the key to both files; words inside a
+message can be translated too by passing `new DefaultMessageSourceResolvable("some.key")` as a value.
+
 ## Accounts and login
 
 Only applicants sign up themselves (`POST /api/v1/auth/register`). Students are added by the office:
@@ -45,7 +75,41 @@ Only applicants sign up themselves (`POST /api/v1/auth/register`). Students are 
 3. Forgotten password: `POST /auth/password/forgot` sends a 6-digit code to the account's email (10 min, 5 tries),
    then `POST /auth/password/reset`. Set `SPRING_MAIL_*` (see `.env.example`); in dev the code is written to the log.
 
-Study levels: Foundation, Certificate, Diploma, Associate, Bachelor, Master, PhD. One person and one login can hold
+Ways to log in (all give the same access and refresh tokens):
+
+| Method | Endpoints |
+|---|---|
+| Password | `POST /auth/login`, with the username, email or phone number in `username` |
+| SMS code | `POST /auth/otp/send` `{phone}` (always 204), then `POST /auth/otp/login` `{phone, code, device}` (5 min, 5 tries, one SMS a minute) |
+| QR code | web: `POST /auth/qr`, shows the qrId as a QR; logged-in app: `POST /auth/qr/{qrId}/approve`; web polls `POST /auth/qr/{qrId}/token` (202 until approved) |
+
+Phone numbers are saved as `+85512345678` (`PhoneNumbers.normalize`; numbers without a country code are Cambodian), so
+`012 345 678` and `+855 12 345 678` are the same login, and each number belongs to one account (V6). No SMS gateway
+is connected yet: `LogOnlySmsSender` only logs, and in dev (`ums.otp.log-code`) the code is written to the log.
+Replace it with a class for the chosen gateway.
+
+Logins and logouts (AUDIT_VIEW, Cambodia time). A logout counts only when the user pressed "Log out", not when a
+session expired or an admin ended it.
+
+- Per day: `GET /api/v1/user-sessions/stats?from=2026-10-18&to=2026-10-24` (leave out `to` for today and `from` for
+  the last 7 days; at most 366 days)
+- Per user on one day: `GET /api/v1/user-sessions/stats/users?date=2026-10-24` (leave out `date` for today)
+
+Devices (sessions):
+
+| Who | See devices | End one device | End devices |
+|---|---|---|---|
+| The user | `GET /user-sessions/me` | `DELETE /user-sessions/me/{sessionId}` | `POST /user-sessions/me/terminate-others` |
+| Admin | `GET /user-sessions/users/{userId}` (USER_VIEW) | `DELETE /user-sessions/users/{userId}/{sessionId}` (USER_LOCK) | `POST /user-sessions/users/{userId}/terminate-all` (USER_LOCK) |
+
+An ended device's access token stops working at once (Redis revoke list). After someone else got in, the user should
+also change their password, which logs out every other device.
+
+Study levels: Foundation, Certificate, Diploma, Associate, Bachelor, Master, PhD. Each student record has a current
+`year_level`: `POST /api/v1/students/promote` moves a program's (or batch's) ACTIVE students from one year to the next,
+keeping back the ones listed as repeating; `PUT /api/v1/students/{id}/year-level` sets one by hand.
+Theses (Bachelor, Master, PhD): `theses`, `thesis_supervisors` (one MAIN plus co-supervisors, staff or external) and
+`thesis_committee_members` (defense committee), with permissions THESIS_MANAGE, THESIS_SUPERVISE, THESIS_SUBMIT. One person and one login can hold
 several student records, one per program (Bachelor → Master → PhD, or a double degree):
 `POST /api/v1/students/{id}/programs` adds a program to an existing student, and `GET /api/v1/students/me`
 lists the logged-in user's programs.

@@ -1,6 +1,8 @@
 package com.ums.people.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.RequirePermission;
+import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.GeoAreaRequest;
 import com.ums.people.api.dto.GeoAreaResponse;
 import com.ums.people.api.dto.GeoAreaUpdateRequest;
@@ -9,7 +11,6 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,13 +49,13 @@ public class GeoAreaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority(T(com.ums.people.PeoplePermissions).GEO_AREA_MANAGE)")
+    @RequirePermission(PeoplePermissions.GEO_AREA_MANAGE)
     public ApiResponse<GeoAreaResponse> create(@Valid @RequestBody GeoAreaRequest request) {
         return ApiResponse.ok(geoAreaService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority(T(com.ums.people.PeoplePermissions).GEO_AREA_MANAGE)")
+    @RequirePermission(PeoplePermissions.GEO_AREA_MANAGE)
     public ApiResponse<GeoAreaResponse> update(@PathVariable Long id, @Valid @RequestBody GeoAreaUpdateRequest request) {
         return ApiResponse.ok(geoAreaService.update(id, request));
     }

@@ -1,6 +1,8 @@
 package com.ums.security.user.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.RequirePermission;
+import com.ums.security.SecurityPermissions;
 import com.ums.security.user.api.dto.TemporaryPasswordResponse;
 import com.ums.security.user.api.dto.UserRoleRequest;
 import com.ums.security.user.api.dto.UserRoleResponse;
@@ -12,7 +14,6 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,21 +34,21 @@ public class UserController {
 
     /** For a user who can't use "Forgot password?" (no email): the office hands over a new temporary password. */
     @PostMapping("/{userId}/reset-password")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).USER_UPDATE)")
+    @RequirePermission(SecurityPermissions.USER_UPDATE)
     public ApiResponse<TemporaryPasswordResponse> resetPassword(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(new TemporaryPasswordResponse(userService.resetPassword(userId, adminId(jwt))));
     }
 
     @PostMapping("/{userId}/lock")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).USER_LOCK)")
+    @RequirePermission(SecurityPermissions.USER_LOCK)
     public void lock(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
         userService.lock(userId, adminId(jwt));
     }
 
     @PostMapping("/{userId}/unlock")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).USER_LOCK)")
+    @RequirePermission(SecurityPermissions.USER_LOCK)
     public void unlock(@PathVariable Long userId) {
         userService.unlock(userId);
     }
@@ -55,14 +56,14 @@ public class UserController {
     /// ROLES OF A USER ----------------------------------------------
 
     @GetMapping("/{userId}/roles")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_VIEW)")
+    @RequirePermission(SecurityPermissions.ROLE_VIEW)
     public ApiResponse<List<UserRoleResponse>> roles(@PathVariable Long userId) {
         return ApiResponse.ok(userService.getRoles(userId));
     }
 
     @PostMapping("/{userId}/roles")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_MANAGE)")
+    @RequirePermission(SecurityPermissions.ROLE_MANAGE)
     public ApiResponse<UserRoleResponse> assignRole(@PathVariable Long userId, @Valid @RequestBody UserRoleRequest request,
                                                     @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(userService.assignRole(userId, request, authorities(jwt)));
@@ -70,7 +71,7 @@ public class UserController {
 
     @DeleteMapping("/{userId}/roles/{userRoleId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_MANAGE)")
+    @RequirePermission(SecurityPermissions.ROLE_MANAGE)
     public void removeRole(@PathVariable Long userId, @PathVariable Long userRoleId, @AuthenticationPrincipal Jwt jwt) {
         userService.removeRole(userId, userRoleId, authorities(jwt));
     }

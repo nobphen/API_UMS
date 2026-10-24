@@ -3,6 +3,7 @@ package com.ums.security.auth.application;
 import com.ums.security.auth.api.dto.ChangePasswordRequest;
 import com.ums.security.auth.api.dto.DeviceInfo;
 import com.ums.security.auth.api.dto.LoginRequest;
+import com.ums.security.auth.api.dto.OtpLoginRequest;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
 import com.ums.security.auth.api.dto.TokenResponse;
@@ -14,8 +15,11 @@ public interface AuthService {
     /** Creates an APPLICANT account and logs it in straight away. */
     TokenResponse register(RegisterRequest request, String ipAddress, String userAgent);
 
-    /** Username (or email) + password → new session with access and refresh tokens. */
+    /** Username, email or phone number + password → new session with access and refresh tokens. */
     TokenResponse login(LoginRequest request, String ipAddress, String userAgent);
+
+    /** Phone number + the code sent by SMS (see OtpLoginService.sendCode) → new session, as for a password login. */
+    TokenResponse loginWithOtp(OtpLoginRequest request, String ipAddress, String userAgent);
 
     /** Valid refresh token → new access token and a new refresh token (the old one stops working). */
     TokenResponse refresh(RefreshTokenRequest request);

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,7 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         List<PersonAddress> rows = new ArrayList<>();
         for (AddressRequest request : addresses) {
             if (!seen.add(request.type())) {
-                throw new BusinessException("Only one " + request.type() + " address is allowed");
+                throw new BusinessException("error.address.duplicate_type", new DefaultMessageSourceResolvable("address.type." + request.type()));
             }
             rows.add(toEntity(person, request));
         }
@@ -68,7 +69,7 @@ public class PersonAddressServiceImpl implements PersonAddressService {
 
     @Override
     public List<AddressResponse> replaceAll(Long personId, List<AddressRequest> addresses) {
-        Person person = personRepository.findById(personId).orElseThrow(() -> new NotFoundException("Person not found"));
+        Person person = personRepository.findById(personId).orElseThrow(() -> new NotFoundException("error.person.not_found"));
         replaceAll(person, addresses == null ? List.of() : addresses);
         return getByPerson(personId);
     }
@@ -87,12 +88,12 @@ public class PersonAddressServiceImpl implements PersonAddressService {
 
         if (request.areaId() != null) {
             if (!Country.CAMBODIA.equals(countryCode)) {
-                throw new BusinessException("Provinces, districts, communes and villages are only for addresses in Cambodia");
+                throw new BusinessException("error.address.areas_only_cambodia");
             }
             // Fill every level from the smallest area chosen, so they always belong together
             for (GeoArea area = findArea(request.areaId()); area != null; area = area.getParent()) {
                 if (!area.isActive()) {
-                    throw new BusinessException(area.getNameEn() + " is no longer in use; choose its new area");
+                    throw new BusinessException("error.address.area_inactive", area.getNameEn(), area.getNameKh());
                 }
                 switch (area.getLevel()) {
                     case VILLAGE -> address.setVillage(area);
@@ -102,13 +103,13 @@ public class PersonAddressServiceImpl implements PersonAddressService {
                 }
             }
         } else if (address.getAddressLine() == null) {
-            throw new BusinessException("Choose the province, district, commune and village, or write the address");
+            throw new BusinessException("error.address.empty");
         }
         return address;
     }
 
     private GeoArea findArea(Long id) {
-        return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("Area not found"));
+        return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("error.geo.not_found"));
     }
 
     private AddressResponse toResponse(PersonAddress a) {

@@ -9,12 +9,12 @@ public record ResetPasswordRequest(
         String username,   // same value as sent to /password/forgot
 
         @NotBlank
-        @Pattern(regexp = "^\\d{6}$", message = "must be the 6-digit code")
+        @Pattern(regexp = "^\\d{6}$", message = "{validation.reset_code}")
         String code,
 
         @NotBlank
         @Size(min = 8, max = 72)   // BCrypt only uses the first 72 bytes
-        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "must contain at least one letter and one digit")
+        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "{validation.password_strength}")
         String newPassword,
 
         @NotBlank

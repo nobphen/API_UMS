@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
         @NotBlank
         @Size(min = 4, max = 100)
-        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "may only contain letters, digits, '.', '_' and '-'")
+        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{validation.username_chars}")
         String username,
 
         @NotBlank @Email @Size(max = 150)
@@ -22,7 +22,7 @@ public record RegisterRequest(
 
         @NotBlank
         @Size(min = 8, max = 72)   // BCrypt only uses the first 72 bytes
-        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "must contain at least one letter and one digit")
+        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "{validation.password_strength}")
         String password,
 
         @NotBlank

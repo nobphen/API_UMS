@@ -12,7 +12,7 @@ public record RoleUpdateRequest(
         String description,
         String descriptionKh,
 
-        @Pattern(regexp = "^(ACTIVE|INACTIVE)$", message = "must be ACTIVE or INACTIVE")
+        @Pattern(regexp = "^(ACTIVE|INACTIVE)$", message = "{validation.active_inactive}")
         String status,              // INACTIVE: users keep the role, but it grants nothing
 
         Set<String> permissions) {  // replaces the role's permissions; leave out to keep them

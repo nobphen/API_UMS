@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.annotation.AnnotationTemplateExpressionDefaults;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -30,6 +31,12 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;                 // CustomUserDetailsService
     private final JwtAuthenticationConverter jwtAuthenticationConverter; // from JwtConfig
     private final SessionActivityFilter sessionActivityFilter;
+
+    /// Lets @RequirePermission(...) fill its codes into its @PreAuthorize expression
+    @Bean
+    static AnnotationTemplateExpressionDefaults configureAnnotationTemplates() {
+        return new AnnotationTemplateExpressionDefaults();
+    }
 
     /// Login: checks username + password against the database (used by AuthService.login)
     @Bean
@@ -55,8 +62,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**", "/actuator/health").permitAll()
-                // Per-endpoint rules go in controllers with permission codes, e.g.
-                // @PreAuthorize("hasAuthority(T(com.ums.people.PeoplePermissions).STUDENT_VIEW)")
+                // Per-endpoint rules go on controller methods with permission codes, e.g.
+                // @RequirePermission(PeoplePermissions.STUDENT_VIEW)
                 .anyRequest()
                 .authenticated()
         );

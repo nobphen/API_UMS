@@ -11,7 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Loads a user by username or email for login, with authorities from their active roles. */
+/** Loads a user by username, email or phone number for login, with authorities from their active roles. */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -21,9 +21,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final PermissionCacheService permissionCacheService;
 
     @Override
-    public AuthUser loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail));
+    public AuthUser loadUserByUsername(String login) throws UsernameNotFoundException {
+        User user = userRepository.findByLogin(login)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + login));
 
         // Fresh from the database at login; also refreshes the Redis cache used at /auth/refresh
         List<SimpleGrantedAuthority> authorities = permissionCacheService.reload(user.getId()).stream()

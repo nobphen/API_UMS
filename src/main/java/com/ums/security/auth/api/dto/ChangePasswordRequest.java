@@ -10,7 +10,7 @@ public record ChangePasswordRequest(
 
         @NotBlank
         @Size(min = 8, max = 72)   // BCrypt only uses the first 72 bytes
-        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "must contain at least one letter and one digit")
+        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "{validation.password_strength}")
         String newPassword,
 
         @NotBlank

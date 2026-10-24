@@ -53,7 +53,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public RoleResponse create(RoleRequest request, Set<String> callerAuthorities) {
         if (roleRepository.existsByCodeIgnoreCase(request.code())) {
-            throw new BusinessException("Role code already exists: " + request.code());
+            throw new BusinessException("error.role.code_exists", request.code());
         }
         Set<Permission> permissions = findPermissions(request.permissions());
         requireCanGrant(permissions, callerAuthorities);
@@ -76,7 +76,7 @@ public class RoleServiceImpl implements RoleService {
 
         if (request.permissions() != null) {
             if (superAdminRole) {
-                throw new BusinessException("SUPER_ADMIN always has every permission and can't be changed");
+                throw new BusinessException("error.role.super_admin_permissions");
             }
             Set<Permission> permissions = findPermissions(request.permissions());
             Set<Permission> added = new HashSet<>(permissions);
@@ -87,7 +87,7 @@ public class RoleServiceImpl implements RoleService {
         }
         if (request.status() != null && !request.status().equals(role.getStatus())) {
             if (superAdminRole) {
-                throw new BusinessException("SUPER_ADMIN can't be made inactive");
+                throw new BusinessException("error.role.super_admin_inactive");
             }
             role.setStatus(request.status());
         }
@@ -105,11 +105,11 @@ public class RoleServiceImpl implements RoleService {
     public void delete(Long id) {
         Role role = findRole(id);
         if (role.isSystem()) {
-            throw new BusinessException("System roles can't be deleted; make the role INACTIVE instead");
+            throw new BusinessException("error.role.system_delete");
         }
         long holders = userRoleRepository.countByRole_Id(id);
         if (holders > 0) {
-            throw new BusinessException("The role is still given to " + holders + " user(s); remove it from them first");
+            throw new BusinessException("error.role.in_use", holders);
         }
         roleRepository.delete(role);
     }
@@ -118,10 +118,10 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(readOnly = true)
     public Role requireGivable(String roleCode, Set<String> callerAuthorities) {
         Role role = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new NotFoundException("Role not found: " + roleCode));
+                .orElseThrow(() -> new NotFoundException("error.role.not_found_code", roleCode));
         if (SUPER_ADMIN.equals(role.getCode())) {
             if (!callerAuthorities.contains(SUPER_ADMIN_AUTHORITY)) {
-                throw new BusinessException("Only a SUPER_ADMIN can give or remove the SUPER_ADMIN role");
+                throw new BusinessException("error.role.super_admin_only");
             }
             return role;
         }
@@ -132,7 +132,7 @@ public class RoleServiceImpl implements RoleService {
     /// HELPERS ------------------------------------------------------
 
     private Role findRole(Long id) {
-        return roleRepository.findById(id).orElseThrow(() -> new NotFoundException("Role not found"));
+        return roleRepository.findById(id).orElseThrow(() -> new NotFoundException("error.role.not_found"));
     }
 
     private RoleResponse toResponse(Role role) {
@@ -148,7 +148,7 @@ public class RoleServiceImpl implements RoleService {
             Set<String> found = permissions.stream().map(Permission::getCode).collect(Collectors.toSet());
             Set<String> unknown = new TreeSet<>(codes);
             unknown.removeAll(found);
-            throw new BusinessException("Unknown permission codes: " + String.join(", ", unknown));
+            throw new BusinessException("error.role.unknown_permissions", String.join(", ", unknown));
         }
         return permissions;
     }
@@ -168,7 +168,7 @@ public class RoleServiceImpl implements RoleService {
                 .filter(code -> !callerAuthorities.contains(code))
                 .collect(Collectors.toCollection(TreeSet::new));
         if (!missing.isEmpty()) {
-            throw new BusinessException("You can't give permissions you don't have: " + String.join(", ", missing));
+            throw new BusinessException("error.role.cannot_grant", String.join(", ", missing));
         }
     }
 }

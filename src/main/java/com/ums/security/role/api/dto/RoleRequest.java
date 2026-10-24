@@ -9,7 +9,7 @@ import java.util.Set;
 public record RoleRequest(
         @NotBlank
         @Size(max = 50)
-        @Pattern(regexp = "^[A-Z][A-Z0-9_]*$", message = "must be UPPER_CASE letters, digits and '_', e.g. LIBRARIAN")
+        @Pattern(regexp = "^[A-Z][A-Z0-9_]*$", message = "{validation.role_code}")
         String code,
 
         @NotBlank @Size(max = 100) String name,

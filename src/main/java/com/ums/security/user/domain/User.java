@@ -9,11 +9,13 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.modulith.NamedInterface;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "users")
+@NamedInterface("user")   // used by other modules
 public class User extends BaseEntity {
 
     @Column(name = "username", nullable = false, unique = true)

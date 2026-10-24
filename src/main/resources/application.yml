@@ -37,6 +37,11 @@ springdoc:
     path: /swagger-ui.html
 
 ums:
+  default-language: ${DEFAULT_LANGUAGE:km}   # API language when the app sends no Accept-Language and nobody is logged in (km or en)
+  first-admin:          # only used when no SUPER_ADMIN exists yet (a new server); see FirstAdminSetup
+    username: ${UMS_ADMIN_USERNAME:}
+    password: ${UMS_ADMIN_PASSWORD:}
+    email: ${UMS_ADMIN_EMAIL:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   jwt:
@@ -59,3 +64,7 @@ ums:
     max-attempts: 5
     mail-from: ${MAIL_FROM:no-reply@ums.local}
     log-code: false   # dev only: write the code to the log when no mail server is set up
+  otp:                # login with a code sent by SMS (/api/v1/auth/otp/*)
+    code-ttl: 5m
+    max-attempts: 5
+    log-code: false   # dev only: write the code to the log while no SMS gateway is set up

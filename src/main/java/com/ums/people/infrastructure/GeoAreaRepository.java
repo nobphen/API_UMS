@@ -7,6 +7,15 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface GeoAreaRepository extends JpaRepository<GeoArea, Long> {
 
+    /**
+     * Whether an area already uses this code.
+     * <pre>
+     * SELECT g.id FROM geo_areas g WHERE g.code = ? FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param code area code
+     * @return true when the code is taken
+     */
     boolean existsByCode(String code);
 
     /**

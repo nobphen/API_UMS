@@ -1,15 +1,18 @@
 package com.ums.security.auth.application.impl;
 
 import com.ums.common.exception.BusinessException;
+import com.ums.common.util.PhoneNumbers;
 import com.ums.security.auth.AuthUser;
 import com.ums.security.auth.api.dto.ChangePasswordRequest;
 import com.ums.security.auth.api.dto.DeviceInfo;
 import com.ums.security.auth.api.dto.LoginRequest;
+import com.ums.security.auth.api.dto.OtpLoginRequest;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
 import com.ums.security.auth.api.dto.TokenResponse;
 import com.ums.security.auth.application.AuthService;
 import com.ums.security.auth.application.JwtService;
+import com.ums.security.auth.application.OtpLoginService;
 import com.ums.security.auth.application.PermissionCacheService;
 import com.ums.security.auth.application.QrLoginService;
 import com.ums.security.session.application.UserSessionService;
@@ -55,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserSessionService userSessionService;
     private final PermissionCacheService permissionCacheService;
     private final QrLoginService qrLoginService;
+    private final OtpLoginService otpLoginService;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
@@ -64,15 +68,19 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public TokenResponse register(RegisterRequest request, String ipAddress, String userAgent) {
         if (!request.password().equals(request.confirmPassword())) {
-            throw new BusinessException("Passwords do not match");
+            throw new BusinessException("error.password.mismatch");
         }
         String username = request.username().trim();
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByUsernameIgnoreCase(username)) {
-            throw new BusinessException("Username is already taken");
+            throw new BusinessException("error.user.username_taken", username);
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new BusinessException("Email is already registered");
+            throw new BusinessException("error.user.email_taken");
+        }
+        String phone = PhoneNumbers.normalizeForSave(request.phone());   // the phone is also a login name
+        if (phone != null && userRepository.existsByPhone(phone)) {
+            throw new BusinessException("error.user.phone_taken");
         }
         Role applicantRole = roleRepository.findByCode(APPLICANT_ROLE)
                 .orElseThrow(() -> new IllegalStateException("Role APPLICANT is missing; check V3__seed_roles_and_admin.sql"));
@@ -80,7 +88,7 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPhone(request.phone());
+        user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setUserType(User.UserType.APPLICANT);
         user.setLastLoginAt(OffsetDateTime.now());
@@ -119,8 +127,26 @@ public class AuthServiceImpl implements AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toSet());
         boolean rememberMe = request.rememberMe() == null || request.rememberMe();
+
         return openSession(user, authorities, request.device(), ipAddress, userAgent,
                 UserSession.LoginMethod.PASSWORD, rememberMe);
+    }
+
+    /// OTP LOGIN ----------------------------------------------------
+    @Override
+    @Transactional
+    public TokenResponse loginWithOtp(OtpLoginRequest request, String ipAddress, String userAgent) {
+        Long userId = otpLoginService.verifyCode(request.phone(), request.code());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadCredentialsException("auth.user_not_found"));
+        if (user.getStatus() != User.Status.ACTIVE) {
+            throw new DisabledException("auth.account_" + user.getStatus().name().toLowerCase());
+        }
+        user.setFailedLoginCount(0);
+        user.setLastLoginAt(OffsetDateTime.now());
+        boolean rememberMe = request.rememberMe() == null || request.rememberMe();
+        return openSession(user, permissionCacheService.reload(userId), request.device(), ipAddress, userAgent,
+                UserSession.LoginMethod.OTP, rememberMe);
     }
 
     /// REFRESH ------------------------------------------------------
@@ -131,17 +157,17 @@ public class AuthServiceImpl implements AuthService {
                 new BearerTokenAuthenticationToken(request.refreshToken()));
         Jwt jwt = auth.getToken();
         if (!"refresh".equals(jwt.getClaimAsString("typ"))) {
-            throw new BadCredentialsException("Not a refresh token");
+            throw new BadCredentialsException("auth.not_refresh_token");
         }
 
         Long sessionId = Long.valueOf(Objects.requireNonNull(jwt.getClaimAsString("sid")));
         UserSession session = userSessionService.getActiveSession(sessionId, request.refreshToken());
 
         User user = userRepository.findById(session.getUserId())
-                .orElseThrow(() -> new BadCredentialsException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("auth.user_not_found"));
         if (user.getStatus() != User.Status.ACTIVE) {
             userSessionService.revoke(sessionId, UserSession.RevokedReason.USER_LOCKED, null);
-            throw new DisabledException("Account is " + user.getStatus().name().toLowerCase());
+            throw new DisabledException("auth.account_" + user.getStatus().name().toLowerCase());
         }
 
         return issueTokens(user, session, permissionCacheService.getAuthorities(user.getId()));
@@ -162,9 +188,9 @@ public class AuthServiceImpl implements AuthService {
     public Optional<TokenResponse> loginWithQr(String qrId, DeviceInfo device, String ipAddress, String userAgent) {
         return qrLoginService.consumeApproved(qrId).map(userId -> {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new BadCredentialsException("User not found"));
+                    .orElseThrow(() -> new BadCredentialsException("auth.user_not_found"));
             if (user.getStatus() != User.Status.ACTIVE) {
-                throw new DisabledException("Account is " + user.getStatus().name().toLowerCase());
+                throw new DisabledException("auth.account_" + user.getStatus().name().toLowerCase());
             }
             user.setLastLoginAt(OffsetDateTime.now());
             return openSession(user, permissionCacheService.reload(userId), device, ipAddress, userAgent,
@@ -179,17 +205,17 @@ public class AuthServiceImpl implements AuthService {
         Long userId = Long.valueOf(Objects.requireNonNull(accessToken.getSubject()));
         Long sessionId = Long.valueOf(Objects.requireNonNull(accessToken.getClaimAsString("sid")));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadCredentialsException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("auth.user_not_found"));
 
         // A BusinessException (400), not 401: the app must not treat a typo as "logged out"
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new BusinessException("Current password is incorrect");
+            throw new BusinessException("error.password.current_wrong");
         }
         if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new BusinessException("Passwords do not match");
+            throw new BusinessException("error.password.mismatch");
         }
         if (request.newPassword().equals(request.currentPassword())) {
-            throw new BusinessException("New password must be different from the current one");
+            throw new BusinessException("error.password.same_as_current");
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
@@ -222,8 +248,8 @@ public class AuthServiceImpl implements AuthService {
                 user.isMustChangePassword());
     }
 
-    private void recordFailedLogin(String usernameOrEmail) {
-        userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail).ifPresent(user -> {
+    private void recordFailedLogin(String login) {
+        userRepository.findByLogin(login).ifPresent(user -> {
             user.setFailedLoginCount(user.getFailedLoginCount() + 1);
             if (user.getFailedLoginCount() >= MAX_FAILED_LOGINS) {
                 user.setStatus(User.Status.LOCKED);

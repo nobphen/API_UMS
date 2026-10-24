@@ -32,7 +32,7 @@ public class QrLoginServiceImpl implements QrLoginService {
     public void approve(String qrId, Long userId) {
         String key = KEY + qrId;
         if (!PENDING.equals(redisTemplate.opsForValue().get(key))) {
-            throw new BusinessException("QR code has expired or was already used");
+            throw new BusinessException("error.qr.expired_or_used");
         }
         Long secondsLeft = redisTemplate.getExpire(key);
         Duration ttl = secondsLeft == null || secondsLeft <= 0 ? TTL : Duration.ofSeconds(secondsLeft);
@@ -44,7 +44,7 @@ public class QrLoginServiceImpl implements QrLoginService {
         String key = KEY + qrId;
         Object value = redisTemplate.opsForValue().get(key);
         if (value == null) {
-            throw new BusinessException("QR code has expired");
+            throw new BusinessException("error.qr.expired");
         }
         String state = value.toString();
         if (!state.startsWith(APPROVED)) {
@@ -52,7 +52,7 @@ public class QrLoginServiceImpl implements QrLoginService {
         }
         // delete() returns true only for the first caller, so one approval gives exactly one login
         if (!Boolean.TRUE.equals(redisTemplate.delete(key))) {
-            throw new BusinessException("QR code was already used");
+            throw new BusinessException("error.qr.used");
         }
         return Optional.of(Long.valueOf(state.substring(APPROVED.length())));
     }

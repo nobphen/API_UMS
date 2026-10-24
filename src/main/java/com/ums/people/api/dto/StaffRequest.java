@@ -21,7 +21,7 @@ public record StaffRequest(
 
         @NotBlank
         @Size(max = 30)
-        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "may only contain letters, digits, '.', '_' and '-'")
+        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{validation.username_chars}")
         String staffCode,   // also the username
 
         @NotBlank @Size(max = 80) String firstName,
@@ -30,7 +30,7 @@ public record StaffRequest(
         @Size(max = 80) String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        @Pattern(regexp = "^[A-Z]{2}$", message = "must be a country code such as KH") String nationalityCode,   // empty = KH
+        @Pattern(regexp = "^[A-Z]{2}$", message = "{validation.country_code}") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
         @Email @Size(max = 150) String email,

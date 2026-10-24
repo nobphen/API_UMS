@@ -32,6 +32,6 @@ public class CountryServiceImpl implements CountryService {
         String value = code == null || code.isBlank() ? Country.CAMBODIA : code.trim().toUpperCase();
         return countryRepository.findById(value)
                 .filter(Country::isActive)
-                .orElseThrow(() -> new BusinessException("Unknown country code " + value));
+                .orElseThrow(() -> new BusinessException("error.country.unknown", value));
     }
 }

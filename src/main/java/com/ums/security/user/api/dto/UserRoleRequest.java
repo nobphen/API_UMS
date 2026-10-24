@@ -12,7 +12,7 @@ public record UserRoleRequest(
         @NotBlank String roleCode,
 
         @Pattern(regexp = "^(GLOBAL|FACULTY|DEPARTMENT|PROGRAM|CLASS_SECTION)$",
-                message = "must be GLOBAL, FACULTY, DEPARTMENT, PROGRAM or CLASS_SECTION")
+                message = "{validation.scope_type}")
         String scopeType,     // empty = GLOBAL
 
         Long scopeId,         // id of the faculty, department, program or class section; empty for GLOBAL

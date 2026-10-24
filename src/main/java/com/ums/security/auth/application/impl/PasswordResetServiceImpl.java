@@ -11,10 +11,12 @@ import com.ums.security.user.infrastructure.UserRepository;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -30,7 +32,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private static final String CODE_KEY = "auth:pwreset:";              // + userId → BCrypt hash of the code
     private static final String ATTEMPTS_KEY = "auth:pwreset:attempts:"; // + userId → wrong tries so far
     private static final Duration RESEND_GAP = Duration.ofSeconds(60);
-    private static final String INVALID_CODE = "The code is wrong or has expired";
+    private static final String INVALID_CODE = "error.reset.invalid_code";
 
     private final SecureRandom random = new SecureRandom();
     private final UserRepository userRepository;
@@ -38,6 +40,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final UserSessionService userSessionService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectProvider<JavaMailSender> mailSender;   // only exists when spring.mail.host is set
+    private final MessageSource messageSource;
     private final Duration codeTtl;
     private final int maxAttempts;
     private final String mailFrom;
@@ -48,6 +51,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                                     UserSessionService userSessionService,
                                     RedisTemplate<String, Object> redisTemplate,
                                     ObjectProvider<JavaMailSender> mailSender,
+                                    MessageSource messageSource,
                                     @Value("${ums.password-reset.code-ttl}") Duration codeTtl,
                                     @Value("${ums.password-reset.max-attempts}") int maxAttempts,
                                     @Value("${ums.password-reset.mail-from}") String mailFrom,
@@ -57,6 +61,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         this.userSessionService = userSessionService;
         this.redisTemplate = redisTemplate;
         this.mailSender = mailSender;
+        this.messageSource = messageSource;
         this.codeTtl = codeTtl;
         this.maxAttempts = maxAttempts;
         this.mailFrom = mailFrom;
@@ -91,7 +96,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new BusinessException("Passwords do not match");
+            throw new BusinessException("error.password.mismatch");
         }
         User user = findUser(request.username()).orElseThrow(() -> new BusinessException(INVALID_CODE));
         String codeKey = CODE_KEY + user.getId();
@@ -107,7 +112,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (attempts == null || attempts > maxAttempts) {
             redisTemplate.delete(codeKey);
             redisTemplate.delete(attemptsKey);
-            throw new BusinessException("Too many wrong codes, please ask for a new code");
+            throw new BusinessException("error.reset.too_many_attempts");
         }
         if (!passwordEncoder.matches(request.code(), codeHash.toString())) {
             throw new BusinessException(INVALID_CODE);
@@ -128,9 +133,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     /// HELPERS ------------------------------------------------------
 
     /** DISABLED accounts (graduated, dropped) can't reset; they are treated like unknown accounts. */
-    private Optional<User> findUser(String usernameOrEmail) {
-        String value = usernameOrEmail.trim();
-        return userRepository.findByUsernameOrEmail(value, value.toLowerCase())
+    private Optional<User> findUser(String login) {
+        return userRepository.findByLogin(login)
                 .filter(u -> u.getStatus() != User.Status.DISABLED);
     }
 
@@ -150,12 +154,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailFrom);
         message.setTo(user.getEmail());
-        message.setSubject("Your UMS password reset code");
-        message.setText("""
-                Your password reset code is: %s
-
-                It expires in %d minutes. If you did not ask to reset your password, ignore this email.
-                """.formatted(code, codeTtl.toMinutes()));
+        // The user is not in the app when this arrives, so it uses their saved language, not the request's
+        Locale locale = Locale.forLanguageTag(user.getPreferredLanguage());
+        message.setSubject(messageSource.getMessage("mail.password_reset.subject", null, locale));
+        message.setText(messageSource.getMessage("mail.password_reset.body", new Object[] {code, codeTtl.toMinutes()}, locale));
         try {
             sender.send(message);
         } catch (MailException ex) {

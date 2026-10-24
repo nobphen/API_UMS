@@ -5,8 +5,10 @@ import com.ums.security.user.api.dto.UserRoleResponse;
 import com.ums.security.user.domain.User;
 import java.util.List;
 import java.util.Set;
+import org.springframework.modulith.NamedInterface;
 
 /** Login accounts made by the office (students, staff, guardians) and what an admin can do to them. */
+@NamedInterface("user-service")   // used by other modules
 public interface UserService {
 
     /**

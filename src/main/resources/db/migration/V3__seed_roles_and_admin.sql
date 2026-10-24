@@ -57,7 +57,7 @@ SELECT d.role_code, unnest(d.codes) FROM (VALUES
         'ENROLLMENT_MANAGE','ATTENDANCE_VIEW','GRADE_APPROVE','GRADE_PUBLISH',
         'EXAM_SCHEDULE_MANAGE','EXAM_SEAT_MANAGE','GRADE_APPEAL_REVIEW',
         'LEAVE_REQUEST_VIEW_ALL','STUDENT_REQUEST_APPROVE',
-        'GRADUATION_VERIFY','GRADUATION_APPROVE','TRANSCRIPT_ISSUE','CERTIFICATE_ISSUE',
+        'GRADUATION_VERIFY','GRADUATION_APPROVE','TRANSCRIPT_ISSUE','CERTIFICATE_ISSUE','THESIS_MANAGE',
         'TEACHING_LOAD_MANAGE','AVAILABILITY_MANAGE','TIMETABLE_GENERATE','TIMETABLE_APPROVE',
         'INVOICE_VIEW','ANNOUNCEMENT_PUBLISH','REPORT_EXPORT']),
 
@@ -72,14 +72,14 @@ SELECT d.role_code, unnest(d.codes) FROM (VALUES
     ('LECTURER', ARRAY[
         'STUDENT_VIEW','ATTENDANCE_TAKE','ATTENDANCE_VIEW','SCORE_ENTER','GRADE_SUBMIT','GRADE_APPEAL_REVIEW',
         'LEAVE_REQUEST_APPROVE','STUDENT_REQUEST_APPROVE',
-        'MATERIAL_MANAGE','QUIZ_MANAGE','AVAILABILITY_MANAGE']),
+        'MATERIAL_MANAGE','QUIZ_MANAGE','AVAILABILITY_MANAGE','THESIS_SUPERVISE']),
 
     -- STUDENT: own classes, grades, invoices and requests
     ('STUDENT', ARRAY[
         'ENROLLMENT_SELF','ATTENDANCE_VIEW','GRADE_VIEW_OWN','GRADE_APPEAL_CREATE',
         'LEAVE_REQUEST_CREATE','STUDENT_REQUEST_CREATE','INVOICE_VIEW',
         'CHAT_SEND','CHAT_CREATE_GROUP','ASSIGNMENT_SUBMIT','QUIZ_TAKE',
-        'RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
+        'RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND','THESIS_SUBMIT']),
 
     -- GUARDIAN: their children's attendance, grades and invoices, and chat with the school
     ('GUARDIAN', ARRAY['ATTENDANCE_VIEW','GRADE_VIEW_OWN','INVOICE_VIEW','CHAT_SEND']),
@@ -107,8 +107,6 @@ JOIN roles r ON r.code = d.role_code
 JOIN permissions p ON p.code = d.permission_code
 ON CONFLICT DO NOTHING;
 
--- First admin user: replace the hash with a BCrypt hash of your own password before running.
--- INSERT INTO users (username, email, password_hash, user_type)
--- VALUES ('admin', 'admin@ums.local', '<bcrypt-hash>', 'ADMIN');
--- INSERT INTO user_roles (user_id, role_id)
--- SELECT u.id, r.id FROM users u, roles r WHERE u.username = 'admin' AND r.code = 'SUPER_ADMIN';
+-- First admin: not inserted here (a password must never sit in a migration). On a new server set
+-- UMS_ADMIN_USERNAME / UMS_ADMIN_PASSWORD / UMS_ADMIN_EMAIL; FirstAdminSetup creates the SUPER_ADMIN at start-up.
+-- The dev profile gets one from db/testdata/V1000__sample_data.sql.

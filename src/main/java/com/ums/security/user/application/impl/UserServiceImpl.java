@@ -2,6 +2,7 @@ package com.ums.security.user.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.PhoneNumbers;
 import com.ums.security.auth.application.PermissionCacheService;
 import com.ums.security.role.application.RoleService;
 import com.ums.security.role.domain.Role;
@@ -20,6 +21,7 @@ import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,10 +53,14 @@ public class UserServiceImpl implements UserService {
     public NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode) {
         String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();
         if (userRepository.existsByUsernameIgnoreCase(username)) {
-            throw new BusinessException("Username is already taken: " + username);
+            throw new BusinessException("error.user.username_taken", username);
         }
         if (normalizedEmail != null && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new BusinessException("Email is already used by another account");
+            throw new BusinessException("error.user.email_taken");
+        }
+        String normalizedPhone = PhoneNumbers.normalizeForSave(phone);   // the phone is also a login name
+        if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
+            throw new BusinessException("error.user.phone_taken");
         }
         Role role = roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
@@ -63,7 +69,7 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setUsername(username);
         user.setEmail(normalizedEmail);
-        user.setPhone(phone);
+        user.setPhone(normalizedPhone);
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setUserType(userType);
         user.setMustChangePassword(true);
@@ -81,7 +87,7 @@ public class UserServiceImpl implements UserService {
     public String useForNewStudy(Long userId) {
         User user = getUser(userId);
         if (user.getStatus() == User.Status.LOCKED) {
-            throw new BusinessException("This login is locked; unlock it first");
+            throw new BusinessException("error.user.locked_unlock_first");
         }
         user.setStatus(User.Status.ACTIVE);   // DISABLED after graduating → in use again
         // Only an applicant turns into a student. A lecturer or guardian who studies keeps their main type;
@@ -115,7 +121,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void lock(Long userId, Long adminId) {
         if (userId.equals(adminId)) {
-            throw new BusinessException("You can't lock your own account");
+            throw new BusinessException("error.user.lock_self");
         }
         User user = getUser(userId);
         user.setStatus(User.Status.LOCKED);
@@ -152,20 +158,20 @@ public class UserServiceImpl implements UserService {
         User user = getUser(userId);
         Role role = roleService.requireGivable(request.roleCode(), callerAuthorities);
         if (!"ACTIVE".equals(role.getStatus())) {
-            throw new BusinessException("Role " + role.getCode() + " is inactive");
+            throw new BusinessException("error.role.inactive", role.getCode());
         }
 
         String scopeType = request.scopeType() == null ? GLOBAL : request.scopeType();
         if (GLOBAL.equals(scopeType) != (request.scopeId() == null)) {
-            throw new BusinessException(GLOBAL.equals(scopeType)
-                    ? "A GLOBAL role has no scopeId"
-                    : "scopeId is needed: the id of the " + scopeType.toLowerCase().replace('_', ' '));
+            throw GLOBAL.equals(scopeType)
+                    ? new BusinessException("error.user_role.global_no_scope")
+                    : new BusinessException("error.user_role.scope_required", new DefaultMessageSourceResolvable("scope." + scopeType));
         }
         if (request.validFrom() != null && request.validTo() != null && request.validTo().isBefore(request.validFrom())) {
-            throw new BusinessException("validTo must be on or after validFrom");
+            throw new BusinessException("error.user_role.dates");
         }
         if (userRoleRepository.existsByUser_IdAndRole_IdAndScopeTypeAndScopeId(userId, role.getId(), scopeType, request.scopeId())) {
-            throw new BusinessException("The user already has this role here");
+            throw new BusinessException("error.user_role.duplicate");
         }
 
         UserRole userRole = new UserRole();
@@ -184,18 +190,18 @@ public class UserServiceImpl implements UserService {
     public void removeRole(Long userId, Long userRoleId, Set<String> callerAuthorities) {
         UserRole userRole = userRoleRepository.findById(userRoleId)
                 .filter(ur -> ur.getUser().getId().equals(userId))
-                .orElseThrow(() -> new NotFoundException("The user does not have this role"));
+                .orElseThrow(() -> new NotFoundException("error.user_role.not_found"));
         String roleCode = userRole.getRole().getCode();
         roleService.requireGivable(roleCode, callerAuthorities);
         if (SUPER_ADMIN_ROLE.equals(roleCode) && userRoleRepository.countByRole_Code(SUPER_ADMIN_ROLE) <= 1) {
-            throw new BusinessException("This is the last SUPER_ADMIN; give the role to someone else first");
+            throw new BusinessException("error.user_role.last_super_admin");
         }
         userRoleRepository.delete(userRole);
         permissionCacheService.evict(userId);
     }
 
     private User getUser(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("error.user.not_found"));
     }
 
     /** Always has a letter and a digit, so it passes the same rules as a password the user picks. */

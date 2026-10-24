@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,28 +57,28 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         GeoArea parent = null;
         if (level == GeoArea.Level.PROVINCE) {
             if (request.parentId() != null) {
-                throw new BusinessException("A province has no parent");
+                throw new BusinessException("error.geo.province_has_no_parent");
             }
         } else {
             if (request.parentId() == null) {
-                throw new BusinessException("A " + level.name().toLowerCase() + " needs its parent " + level.parentLevel().name().toLowerCase());
+                throw new BusinessException("error.geo.needs_parent", level(level), level(level.parentLevel()));
             }
             parent = find(request.parentId());
             if (parent.getLevel() != level.parentLevel()) {
-                throw new BusinessException("A " + level.name().toLowerCase() + " must be inside a " + level.parentLevel().name().toLowerCase());
+                throw new BusinessException("error.geo.must_be_inside", level(level), level(level.parentLevel()));
             }
         }
 
         // Official codes: 2 digits per level, each starting with the parent's code
         int expectedLength = (level.ordinal() + 1) * 2;
         if (request.code().length() != expectedLength) {
-            throw new BusinessException("A " + level.name().toLowerCase() + " code has " + expectedLength + " digits");
+            throw new BusinessException("error.geo.code_length", level(level), expectedLength);
         }
         if (parent != null && !request.code().startsWith(parent.getCode())) {
-            throw new BusinessException("The code must start with the parent's code " + parent.getCode());
+            throw new BusinessException("error.geo.code_prefix", parent.getCode());
         }
         if (geoAreaRepository.existsByCode(request.code())) {
-            throw new BusinessException("Code " + request.code() + " is already used");
+            throw new BusinessException("error.geo.code_used", request.code());
         }
 
         GeoArea area = new GeoArea();
@@ -105,7 +106,12 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         return geoAreaMapper.toResponse(area);
     }
 
+    /** "village", "ភូមិ" … inside a message, in the caller's language. */
+    private static DefaultMessageSourceResolvable level(GeoArea.Level level) {
+        return new DefaultMessageSourceResolvable("geo.level." + level);
+    }
+
     private GeoArea find(Long id) {
-        return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("Area not found"));
+        return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("error.geo.not_found"));
     }
 }

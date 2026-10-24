@@ -1,5 +1,5 @@
 -- =====================================================================
--- V2__seed_permissions.sql  -  98 permission codes for all 20 modules
+-- V2__seed_permissions.sql  -  101 permission codes for all 20 modules
 -- Safe to re-run: existing codes are updated, new codes are added.
 -- (Can be renamed to R__seed_permissions.sql to keep it as a repeatable list.)
 -- Codes must match the constants in each module's *Permissions.java
@@ -66,6 +66,9 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('GRADUATION_APPROVE',        'GRADUATION',   'APPROVE', 'Approve graduation'),
     ('TRANSCRIPT_ISSUE',          'GRADUATION',   'CREATE',  'Issue transcripts'),
     ('CERTIFICATE_ISSUE',         'GRADUATION',   'CREATE',  'Issue certificates'),
+    ('THESIS_MANAGE',             'GRADUATION',   'MANAGE',  'Manage theses, supervisors and defense committees'),
+    ('THESIS_SUPERVISE',          'GRADUATION',   'APPROVE', 'Approve proposals and record results for own supervised theses'),
+    ('THESIS_SUBMIT',             'GRADUATION',   'CREATE',  'Submit own thesis proposal and final copy'),
     -- FINANCE
     ('FEE_MANAGE',                'FINANCE',      'MANAGE',  'Manage fee types and fee structures'),
     ('INVOICE_VIEW',              'FINANCE',      'VIEW',    'View invoices'),

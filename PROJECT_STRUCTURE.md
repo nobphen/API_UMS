@@ -1,12 +1,13 @@
 # University Management System — Full Project Structure
 
-Spring Boot 4.1 · Java 21 · PostgreSQL · package by feature · 20 modules · 117 models (one per table)
+Spring Boot 4.1 · Java 21 · PostgreSQL · package by feature · 20 modules · 120 models (one per table)
 
 How to read it:
 - Each module (and each sub-feature inside a large module) has the same four folders: `api/` (controllers + DTOs), `application/` (service interfaces, `impl/` with the `ServiceImpl` classes, and mappers), `domain/` (JPA models), `infrastructure/` (repositories).
-- Every table has a model in `domain/` and a repository in `infrastructure/` — 117 models for 118 tables, because `role_permissions` is a @ManyToMany inside `Role` with no class of its own.
+- Every table has a model in `domain/` and a repository in `infrastructure/` — 120 models for 121 tables, because `role_permissions` is a @ManyToMany inside `Role` with no class of its own.
 - Main tables also get a controller, request/response DTOs, a service and a mapper. Child tables (invoice_items, user_roles, route_stops…) are saved through their parent's service, so they have no controller of their own.
 - Every service is an interface (`StudentService`) with its implementation in `application/impl/` (`StudentServiceImpl`, annotated `@Service @Transactional`). Controllers depend on the interface only.
+- Each module has a `<Module>Permissions.java` (e.g. `PeoplePermissions`) whose constants copy the `code` column of `V2__seed_permissions.sql` for that module. Controllers protect endpoints with `@RequirePermission(PeoplePermissions.STUDENT_CREATE)` (in `common/security/`); which roles hold each code lives in `role_permissions` and is changed with the roles API.
 - Pluggable parts have several implementations behind one interface: file storage (MinIO / S3), payment gateways (ABA / KHQR / Wing), notification senders (FCM / email / Telegram).
 - `V1__init_schema.sql` is `ums_schema.sql`, and `V2__seed_permissions.sql` is `UMS_V2__seed_permissions.sql` (copies in the project root, updated automatically on every build by the Gradle task `syncSchemaCopies`).
 - `keys/` (the RSA key pair) is git-ignored and not listed; see the README to generate it.
@@ -255,17 +256,22 @@ ums/
 │   │   │           │   ├── response/
 │   │   │           │   │   ├── ApiResponse.java
 │   │   │           │   │   └── PageResponse.java
+│   │   │           │   ├── security/
+│   │   │           │   │   └── RequirePermission.java
 │   │   │           │   ├── storage/
 │   │   │           │   │   ├── impl/
 │   │   │           │   │   │   ├── MinioFileStorageService.java
 │   │   │           │   │   │   └── S3FileStorageService.java
 │   │   │           │   │   └── FileStorageService.java
-│   │   │           │   └── util/
-│   │   │           │       └── DateUtils.java
+│   │   │           │   ├── util/
+│   │   │           │   │   ├── DateUtils.java
+│   │   │           │   │   └── PhoneNumbers.java
+│   │   │           │   └── package-info.java
 │   │   │           ├── config/
 │   │   │           │   ├── CorsConfig.java
 │   │   │           │   ├── JpaConfig.java
 │   │   │           │   ├── JwtConfig.java
+│   │   │           │   ├── LocaleConfig.java
 │   │   │           │   ├── OpenApiConfig.java
 │   │   │           │   ├── PasswordEncoderConfig.java
 │   │   │           │   ├── RedisConfig.java
@@ -540,30 +546,42 @@ ums/
 │   │   │           │   │   │   ├── CertificateResponse.java
 │   │   │           │   │   │   ├── GraduationApplicationRequest.java
 │   │   │           │   │   │   ├── GraduationApplicationResponse.java
+│   │   │           │   │   │   ├── ThesisRequest.java
+│   │   │           │   │   │   ├── ThesisResponse.java
 │   │   │           │   │   │   ├── TranscriptRequestRequest.java
 │   │   │           │   │   │   └── TranscriptRequestResponse.java
 │   │   │           │   │   ├── CertificateController.java
 │   │   │           │   │   ├── GraduationApplicationController.java
+│   │   │           │   │   ├── ThesisController.java
 │   │   │           │   │   └── TranscriptRequestController.java
 │   │   │           │   ├── application/
 │   │   │           │   │   ├── impl/
 │   │   │           │   │   │   ├── CertificateServiceImpl.java
 │   │   │           │   │   │   ├── GraduationApplicationServiceImpl.java
+│   │   │           │   │   │   ├── ThesisServiceImpl.java
 │   │   │           │   │   │   └── TranscriptRequestServiceImpl.java
 │   │   │           │   │   ├── mapper/
 │   │   │           │   │   │   ├── CertificateMapper.java
 │   │   │           │   │   │   ├── GraduationApplicationMapper.java
+│   │   │           │   │   │   ├── ThesisMapper.java
 │   │   │           │   │   │   └── TranscriptRequestMapper.java
 │   │   │           │   │   ├── CertificateService.java
 │   │   │           │   │   ├── GraduationApplicationService.java
+│   │   │           │   │   ├── ThesisService.java
 │   │   │           │   │   └── TranscriptRequestService.java
 │   │   │           │   ├── domain/
 │   │   │           │   │   ├── Certificate.java
 │   │   │           │   │   ├── GraduationApplication.java
+│   │   │           │   │   ├── Thesis.java
+│   │   │           │   │   ├── ThesisCommitteeMember.java
+│   │   │           │   │   ├── ThesisSupervisor.java
 │   │   │           │   │   └── TranscriptRequest.java
 │   │   │           │   ├── infrastructure/
 │   │   │           │   │   ├── CertificateRepository.java
 │   │   │           │   │   ├── GraduationApplicationRepository.java
+│   │   │           │   │   ├── ThesisCommitteeMemberRepository.java
+│   │   │           │   │   ├── ThesisRepository.java
+│   │   │           │   │   ├── ThesisSupervisorRepository.java
 │   │   │           │   │   └── TranscriptRequestRepository.java
 │   │   │           │   └── GraduationPermissions.java
 │   │   │           ├── hostel/
@@ -863,10 +881,13 @@ ums/
 │   │   │           │   │   │   ├── NewStudentResponse.java
 │   │   │           │   │   │   ├── PersonRequest.java
 │   │   │           │   │   │   ├── PersonResponse.java
+│   │   │           │   │   │   ├── PromoteStudentsRequest.java
+│   │   │           │   │   │   ├── PromoteStudentsResponse.java
 │   │   │           │   │   │   ├── StaffRequest.java
 │   │   │           │   │   │   ├── StaffResponse.java
 │   │   │           │   │   │   ├── StudentRequest.java
-│   │   │           │   │   │   └── StudentResponse.java
+│   │   │           │   │   │   ├── StudentResponse.java
+│   │   │           │   │   │   └── YearLevelRequest.java
 │   │   │           │   │   ├── BatchController.java
 │   │   │           │   │   ├── CountryController.java
 │   │   │           │   │   ├── GeoAreaController.java
@@ -993,6 +1014,8 @@ ums/
 │   │   │           │   │   │   │   ├── ForgotPasswordRequest.java
 │   │   │           │   │   │   │   ├── LanguageRequest.java
 │   │   │           │   │   │   │   ├── LoginRequest.java
+│   │   │           │   │   │   │   ├── OtpLoginRequest.java
+│   │   │           │   │   │   │   ├── OtpSendRequest.java
 │   │   │           │   │   │   │   ├── QrLoginResponse.java
 │   │   │           │   │   │   │   ├── RefreshTokenRequest.java
 │   │   │           │   │   │   │   ├── RegisterRequest.java
@@ -1003,6 +1026,8 @@ ums/
 │   │   │           │   │   │   ├── impl/
 │   │   │           │   │   │   │   ├── AuthServiceImpl.java
 │   │   │           │   │   │   │   ├── JwtServiceImpl.java
+│   │   │           │   │   │   │   ├── LogOnlySmsSender.java
+│   │   │           │   │   │   │   ├── OtpLoginServiceImpl.java
 │   │   │           │   │   │   │   ├── PasswordResetServiceImpl.java
 │   │   │           │   │   │   │   ├── PermissionCacheServiceImpl.java
 │   │   │           │   │   │   │   ├── QrLoginServiceImpl.java
@@ -1010,10 +1035,12 @@ ums/
 │   │   │           │   │   │   ├── AuthService.java
 │   │   │           │   │   │   ├── CustomUserDetailsService.java
 │   │   │           │   │   │   ├── JwtService.java
+│   │   │           │   │   │   ├── OtpLoginService.java
 │   │   │           │   │   │   ├── PasswordResetService.java
 │   │   │           │   │   │   ├── PermissionCacheService.java
 │   │   │           │   │   │   ├── QrLoginService.java
-│   │   │           │   │   │   └── ScopeService.java
+│   │   │           │   │   │   ├── ScopeService.java
+│   │   │           │   │   │   └── SmsSender.java
 │   │   │           │   │   └── AuthUser.java
 │   │   │           │   ├── filter/
 │   │   │           │   │   └── SessionActivityFilter.java
@@ -1060,6 +1087,8 @@ ums/
 │   │   │           │   ├── session/
 │   │   │           │   │   ├── api/
 │   │   │           │   │   │   ├── dto/
+│   │   │           │   │   │   │   ├── LoginStatsResponse.java
+│   │   │           │   │   │   │   ├── UserLoginStatsResponse.java
 │   │   │           │   │   │   │   ├── UserSessionRequest.java
 │   │   │           │   │   │   │   └── UserSessionResponse.java
 │   │   │           │   │   │   └── UserSessionController.java
@@ -1091,6 +1120,8 @@ ums/
 │   │   │           │   │   ├── application/
 │   │   │           │   │   │   ├── impl/
 │   │   │           │   │   │   │   └── UserServiceImpl.java
+│   │   │           │   │   │   ├── job/
+│   │   │           │   │   │   │   └── FirstAdminSetup.java
 │   │   │           │   │   │   ├── mapper/
 │   │   │           │   │   │   │   └── UserMapper.java
 │   │   │           │   │   │   └── UserService.java
@@ -1212,12 +1243,13 @@ ums/
 │   │       │   │   ├── V2__seed_permissions.sql
 │   │       │   │   ├── V3__seed_roles_and_admin.sql
 │   │       │   │   ├── V4__seed_geo_areas.sql
-│   │       │   │   └── V5__seed_countries.sql
+│   │       │   │   ├── V5__seed_countries.sql
+│   │       │   │   └── V6__users_phone_login.sql
 │   │       │   └── testdata/
 │   │       │       └── V1000__sample_data.sql
 │   │       ├── i18n/
-│   │       │   ├── messages_en.properties
-│   │       │   └── messages_km.properties
+│   │       │   ├── messages.properties        # English (default)
+│   │       │   └── messages_km.properties     # Khmer
 │   │       ├── application-dev.yml
 │   │       ├── application-preprod.yml
 │   │       ├── application-prod.yml
@@ -1228,6 +1260,9 @@ ums/
 │       └── java/
 │           └── com/
 │               └── ums/
+│                   ├── common/
+│                   │   └── util/
+│                   │       └── PhoneNumbersTest.java
 │                   └── ModularityTest.java
 ├── .env.example
 ├── .gitignore

@@ -1,15 +1,19 @@
 package com.ums.security.session.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.RequirePermission;
+import com.ums.security.SecurityPermissions;
+import com.ums.security.session.api.dto.LoginStatsResponse;
+import com.ums.security.session.api.dto.UserLoginStatsResponse;
 import com.ums.security.session.api.dto.UserSessionResponse;
 import com.ums.security.session.application.UserSessionService;
 import com.ums.security.session.application.mapper.UserSessionMapper;
 import com.ums.security.session.domain.UserSession;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -55,7 +60,7 @@ public class UserSessionController {
     /// ADMIN: another user's devices (e.g. a student reports a stolen phone) ------
 
     @GetMapping("/users/{userId}")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).USER_VIEW)")
+    @RequirePermission(SecurityPermissions.USER_VIEW)
     public ApiResponse<List<UserSessionResponse>> userSessions(@PathVariable Long userId) {
         return ApiResponse.ok(userSessionService.getActiveSessions(userId).stream()
                 .map(s -> userSessionMapper.toResponse(s, null))
@@ -63,10 +68,36 @@ public class UserSessionController {
     }
 
     @PostMapping("/users/{userId}/terminate-all")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).USER_LOCK)")
+    @RequirePermission(SecurityPermissions.USER_LOCK)
     public ApiResponse<Integer> endAllUserSessions(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(userSessionService.revokeAll(
                 userId, UserSession.RevokedReason.ADMIN, userId(jwt), null));
+    }
+
+    /** Ends one device of the user, e.g. the phone of someone who got into the account; the others stay logged in. */
+    @DeleteMapping("/users/{userId}/{sessionId}")
+    @RequirePermission(SecurityPermissions.USER_LOCK)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void endUserSession(@PathVariable Long userId, @PathVariable Long sessionId,
+                               @AuthenticationPrincipal Jwt jwt) {
+        userSessionService.revokeByAdmin(userId, sessionId, userId(jwt));
+    }
+
+    /// ADMIN: logins and logouts per day ---------------------------
+
+    /** Leave out to for today, and from for the 7 days up to it; dates are yyyy-MM-dd, Cambodia time. */
+    @GetMapping("/stats")
+    @RequirePermission(SecurityPermissions.AUDIT_VIEW)
+    public ApiResponse<List<LoginStatsResponse>> loginStats(@RequestParam(required = false) LocalDate from,
+                                                            @RequestParam(required = false) LocalDate to) {
+        return ApiResponse.ok(userSessionService.loginStats(from, to));
+    }
+
+    /** Who logged in and out on one day and how many times; leave out date for today (yyyy-MM-dd, Cambodia time). */
+    @GetMapping("/stats/users")
+    @RequirePermission(SecurityPermissions.AUDIT_VIEW)
+    public ApiResponse<List<UserLoginStatsResponse>> loginStatsByUser(@RequestParam(required = false) LocalDate date) {
+        return ApiResponse.ok(userSessionService.loginStatsByUser(date));
     }
 
     private static Long userId(Jwt jwt) {

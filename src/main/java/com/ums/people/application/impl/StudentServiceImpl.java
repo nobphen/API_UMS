@@ -4,6 +4,8 @@ import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
 import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
+import com.ums.people.api.dto.PromoteStudentsRequest;
+import com.ums.people.api.dto.PromoteStudentsResponse;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
 import com.ums.people.application.CountryService;
@@ -19,6 +21,7 @@ import com.ums.people.infrastructure.StudentRepository;
 import com.ums.security.user.application.UserService;
 import com.ums.security.user.domain.User;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +69,7 @@ public class StudentServiceImpl implements StudentService {
         Long userId = request.existingUserId();
         if (studentRepository.existsByUserIdAndProgramIdAndStatusInAndDeletedAtIsNull(
                 userId, request.programId(), Student.Status.CURRENT)) {
-            throw new BusinessException("This person is already studying that program");
+            throw new BusinessException("error.student.already_in_program");
         }
         String username = userService.useForNewStudy(userId);
 
@@ -92,12 +95,12 @@ public class StudentServiceImpl implements StudentService {
     public NewStudentResponse addProgram(Long studentId, NewProgramRequest request) {
         Student existing = findStudent(studentId);
         if (existing.getUserId() == null) {
-            throw new BusinessException("This student has no login yet");
+            throw new BusinessException("error.student.no_login");
         }
         String studentCode = requireNewCode(request.studentCode());
         if (studentRepository.existsByUserIdAndProgramIdAndStatusInAndDeletedAtIsNull(
                 existing.getUserId(), request.programId(), Student.Status.CURRENT)) {
-            throw new BusinessException("This person is already studying that program");
+            throw new BusinessException("error.student.already_in_program");
         }
 
         String username = userService.useForNewStudy(existing.getUserId());
@@ -115,6 +118,33 @@ public class StudentServiceImpl implements StudentService {
 
         // Same login and password as before, so there is no temporary password to hand out
         return new NewStudentResponse(toResponse(student), username, null);
+    }
+
+    @Override
+    public PromoteStudentsResponse promote(PromoteStudentsRequest request) {
+        Set<Long> keep = request.keepStudentIds() == null ? Set.of() : Set.copyOf(request.keepStudentIds());
+        int promoted = 0;
+        int kept = 0;
+        for (Student student : studentRepository.findByProgramIdAndYearLevelAndStatusAndDeletedAtIsNull(
+                request.programId(), request.fromYear(), Student.Status.ACTIVE)) {
+            if (request.batchId() != null && !request.batchId().equals(student.getBatchId())) {
+                continue;
+            }
+            if (keep.contains(student.getId())) {
+                kept++;   // repeating the year
+            } else {
+                student.setYearLevel(request.fromYear() + 1);
+                promoted++;
+            }
+        }
+        return new PromoteStudentsResponse(promoted, kept);
+    }
+
+    @Override
+    public StudentResponse setYearLevel(Long id, int yearLevel) {
+        Student student = findStudent(id);
+        student.setYearLevel(yearLevel);
+        return toResponse(student);
     }
 
     @Override
@@ -145,13 +175,13 @@ public class StudentServiceImpl implements StudentService {
     private Student findStudent(Long id) {
         return studentRepository.findById(id)
                 .filter(s -> !s.isDeleted())
-                .orElseThrow(() -> new NotFoundException("Student not found"));
+                .orElseThrow(() -> new NotFoundException("error.student.not_found"));
     }
 
     private String requireNewCode(String code) {
         String studentCode = code.trim();
         if (studentRepository.existsByStudentCodeIgnoreCase(studentCode)) {
-            throw new BusinessException("Student code already exists: " + studentCode);
+            throw new BusinessException("error.student.code_exists", studentCode);
         }
         return studentCode;
     }

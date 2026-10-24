@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 /** A new province, district, commune or village, e.g. after a sub-decree creates one. */
 public record GeoAreaRequest(
         @NotBlank
-        @Pattern(regexp = "^(\\d{2}|\\d{4}|\\d{6}|\\d{8})$", message = "must be the official 2, 4, 6 or 8 digit code")
+        @Pattern(regexp = "^(\\d{2}|\\d{4}|\\d{6}|\\d{8})$", message = "{validation.geo_code}")
         String code,              // must start with the parent's code
 
         @NotNull GeoArea.Level level,

@@ -9,12 +9,14 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.modulith.NamedInterface;
 
 /** Personal details shared by students, staff and guardians. */
 @Getter
 @Setter
 @Entity
 @Table(name = "persons")
+@NamedInterface("person")   // used by other modules
 public class Person extends BaseEntity {
 
     @Column(name = "first_name", nullable = false)

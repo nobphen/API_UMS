@@ -1,5 +1,5 @@
 -- =====================================================================
--- University Management System - PostgreSQL schema (118 tables, 20 modules)
+-- University Management System - PostgreSQL schema (121 tables, 20 modules)
 -- Java Spring Boot + JPA. Use as Flyway V1__init_schema.sql
 -- =====================================================================
 
@@ -910,7 +910,7 @@ CREATE TABLE request_approvals (
     UNIQUE (student_request_id, step_no)
 );
 
--- ---------- 9. GRADUATION & TRANSCRIPTS (3) ----------
+-- ---------- 9. GRADUATION, TRANSCRIPTS & THESES (6) ----------
 CREATE TABLE graduation_applications (
     id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     student_id        BIGINT NOT NULL REFERENCES students(id),
@@ -944,6 +944,55 @@ CREATE TABLE certificates (
     issue_date        DATE NOT NULL,
     verification_code VARCHAR(64) NOT NULL UNIQUE,
     file_url          VARCHAR(500)
+);
+
+-- Bachelor theses, Master's theses and PhD dissertations: proposal → research → submission → defense.
+CREATE TABLE theses (
+    id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id           BIGINT NOT NULL REFERENCES students(id),
+    thesis_type          VARCHAR(20) NOT NULL CHECK (thesis_type IN ('BACHELOR_THESIS','MASTER_THESIS','PHD_DISSERTATION','PROJECT')),
+    title                VARCHAR(300) NOT NULL,
+    title_kh             VARCHAR(300),
+    summary              TEXT,                    -- the abstract
+    summary_kh           TEXT,
+    status               VARCHAR(20) NOT NULL DEFAULT 'PROPOSAL'
+                         CHECK (status IN ('PROPOSAL','APPROVED','IN_PROGRESS','SUBMITTED','DEFENSE_SCHEDULED','PASSED','REVISION','FAILED','WITHDRAWN')),
+    proposal_approved_on DATE,
+    submitted_at         TIMESTAMPTZ,
+    defense_at           TIMESTAMPTZ,
+    defense_room_id      BIGINT REFERENCES rooms(id),
+    result_score         NUMERIC(5,2),
+    result_grade         VARCHAR(30),            -- e.g. A, Excellent, Pass with minor revisions
+    file_url             VARCHAR(500),           -- the final approved copy
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- One thesis in progress per student record; a failed or withdrawn one can be followed by a new one
+CREATE UNIQUE INDEX ux_theses_student_open ON theses (student_id) WHERE status NOT IN ('FAILED','WITHDRAWN');
+
+CREATE TABLE thesis_supervisors (                -- a staff member, or someone from another university
+    id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    thesis_id            BIGINT NOT NULL REFERENCES theses(id) ON DELETE CASCADE,
+    staff_id             BIGINT REFERENCES staff(id),
+    external_name        VARCHAR(150),
+    external_institution VARCHAR(200),
+    supervisor_role      VARCHAR(20) NOT NULL DEFAULT 'MAIN' CHECK (supervisor_role IN ('MAIN','CO_SUPERVISOR')),
+    UNIQUE (thesis_id, staff_id),
+    CHECK (staff_id IS NOT NULL OR external_name IS NOT NULL)
+);
+CREATE UNIQUE INDEX ux_thesis_main_supervisor ON thesis_supervisors (thesis_id) WHERE supervisor_role = 'MAIN';
+CREATE INDEX ix_thesis_supervisors_staff ON thesis_supervisors (staff_id);
+
+CREATE TABLE thesis_committee_members (          -- the defense committee
+    id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    thesis_id            BIGINT NOT NULL REFERENCES theses(id) ON DELETE CASCADE,
+    staff_id             BIGINT REFERENCES staff(id),
+    external_name        VARCHAR(150),
+    external_institution VARCHAR(200),
+    committee_role       VARCHAR(20) NOT NULL CHECK (committee_role IN ('CHAIR','EXAMINER','EXTERNAL_EXAMINER','SECRETARY')),
+    score                NUMERIC(5,2),
+    comment              TEXT,
+    CHECK (staff_id IS NOT NULL OR external_name IS NOT NULL)
 );
 
 -- ---------- 12. SUPPORTING (3) ----------

@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public record NewProgramRequest(
         @NotBlank
         @Size(max = 30)
-        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "may only contain letters, digits, '.', '_' and '-'")
+        @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{validation.username_chars}")
         String studentCode,   // e.g. MS2026014; the login keeps its old username
 
         @NotNull Long programId,

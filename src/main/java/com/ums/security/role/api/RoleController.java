@@ -1,6 +1,8 @@
 package com.ums.security.role.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.RequirePermission;
+import com.ums.security.SecurityPermissions;
 import com.ums.security.role.api.dto.RoleRequest;
 import com.ums.security.role.api.dto.RoleResponse;
 import com.ums.security.role.api.dto.RoleUpdateRequest;
@@ -11,7 +13,6 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,26 +33,26 @@ public class RoleController {
     private final RoleService roleService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_VIEW)")
+    @RequirePermission(SecurityPermissions.ROLE_VIEW)
     public ApiResponse<List<RoleResponse>> list() {
         return ApiResponse.ok(roleService.list());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_VIEW)")
+    @RequirePermission(SecurityPermissions.ROLE_VIEW)
     public ApiResponse<RoleResponse> get(@PathVariable Long id) {
         return ApiResponse.ok(roleService.get(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_MANAGE)")
+    @RequirePermission(SecurityPermissions.ROLE_MANAGE)
     public ApiResponse<RoleResponse> create(@Valid @RequestBody RoleRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(roleService.create(request, authorities(jwt)));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_MANAGE)")
+    @RequirePermission(SecurityPermissions.ROLE_MANAGE)
     public ApiResponse<RoleResponse> update(@PathVariable Long id, @Valid @RequestBody RoleUpdateRequest request,
                                             @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(roleService.update(id, request, authorities(jwt)));
@@ -59,7 +60,7 @@ public class RoleController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority(T(com.ums.security.SecurityPermissions).ROLE_MANAGE)")
+    @RequirePermission(SecurityPermissions.ROLE_MANAGE)
     public void delete(@PathVariable Long id) {
         roleService.delete(id);
     }

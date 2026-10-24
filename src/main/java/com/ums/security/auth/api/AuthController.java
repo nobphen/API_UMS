@@ -7,12 +7,15 @@ import com.ums.security.auth.api.dto.DeviceInfo;
 import com.ums.security.auth.api.dto.ForgotPasswordRequest;
 import com.ums.security.auth.api.dto.LanguageRequest;
 import com.ums.security.auth.api.dto.LoginRequest;
+import com.ums.security.auth.api.dto.OtpLoginRequest;
+import com.ums.security.auth.api.dto.OtpSendRequest;
 import com.ums.security.auth.api.dto.QrLoginResponse;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
 import com.ums.security.auth.api.dto.ResetPasswordRequest;
 import com.ums.security.auth.api.dto.TokenResponse;
 import com.ums.security.auth.application.AuthService;
+import com.ums.security.auth.application.OtpLoginService;
 import com.ums.security.auth.application.PasswordResetService;
 import com.ums.security.auth.application.QrLoginService;
 import com.ums.security.user.application.UserService;
@@ -41,6 +44,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final QrLoginService qrLoginService;
+    private final OtpLoginService otpLoginService;
     private final PasswordResetService passwordResetService;
     private final UserService userService;
 
@@ -54,6 +58,20 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
         return ApiResponse.ok(authService.login(request, clientIp(http), http.getHeader("User-Agent")));
+    }
+
+    /// SMS CODE LOGIN: 1. send a code to the phone → 2. log in with phone + code
+
+    /** Always 204, whether or not the number has an account, so the answer reveals nothing. */
+    @PostMapping("/otp/send")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void sendOtp(@Valid @RequestBody OtpSendRequest request) {
+        otpLoginService.sendCode(request.phone());
+    }
+
+    @PostMapping("/otp/login")
+    public ApiResponse<TokenResponse> loginWithOtp(@Valid @RequestBody OtpLoginRequest request, HttpServletRequest http) {
+        return ApiResponse.ok(authService.loginWithOtp(request, clientIp(http), http.getHeader("User-Agent")));
     }
 
     @PostMapping("/refresh")
