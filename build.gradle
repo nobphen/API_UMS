@@ -69,6 +69,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
     testImplementation 'org.springframework.modulith:spring-modulith-docs'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'   // API tests: a new PostgreSQL + Redis in Docker per run
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

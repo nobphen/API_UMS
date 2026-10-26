@@ -1,6 +1,7 @@
 package com.ums.people.domain;
 
 import com.ums.common.entity.BaseEntity;
+import com.ums.common.util.PhoneNumbers;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -45,6 +46,7 @@ public class Person extends BaseEntity {
     @Column(name = "national_id")
     private String nationalId;
 
+    /** Always saved as +855969530336, whatever was typed (see {@link #setPhone(String)}). */
     @Column(name = "phone")
     private String phone;
 
@@ -55,4 +57,12 @@ public class Person extends BaseEntity {
     private String photoUrl;
 
     public enum Gender { MALE, FEMALE, OTHER }
+
+    /**
+     * "096 953 0336", "0969530336", "+855 96 953 0336" … are all saved as +855969530336, like the login phone,
+     * so one number is written one way everywhere. Not a phone number → error.phone.invalid (400).
+     */
+    public void setPhone(String phone) {
+        this.phone = PhoneNumbers.normalizeForSave(phone);
+    }
 }

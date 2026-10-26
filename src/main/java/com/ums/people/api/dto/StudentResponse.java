@@ -1,5 +1,6 @@
 package com.ums.people.api.dto;
 
+import com.ums.common.response.PhoneDisplay;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Student;
 import java.time.LocalDate;
@@ -14,7 +15,7 @@ public record StudentResponse(
         String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        String phone,
+        @PhoneDisplay String phone,
         String email,
         Long programId,
         Long batchId,

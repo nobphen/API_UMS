@@ -4,7 +4,7 @@ spring:
     username: ${DB_USERNAME:ums}
     password: ${DB_PASSWORD:ums}
   jpa:
-    show-sql: true
+    show-sql: false   # true prints every SQL query in the console (useful to find slow or repeated queries)
   flyway:
     locations: classpath:db/migration,classpath:db/testdata
     out-of-order: true   # testdata is V1000+, so a later db/migration script (V4, V5…) still runs after it

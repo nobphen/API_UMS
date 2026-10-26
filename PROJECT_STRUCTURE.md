@@ -4,7 +4,7 @@ Spring Boot 4.1 · Java 21 · PostgreSQL · package by feature · 20 modules · 
 
 How to read it:
 - Each module (and each sub-feature inside a large module) has the same four folders: `api/` (controllers + DTOs), `application/` (service interfaces, `impl/` with the `ServiceImpl` classes, and mappers), `domain/` (JPA models), `infrastructure/` (repositories).
-- Every table has a model in `domain/` and a repository in `infrastructure/` — 120 models for 121 tables, because `role_permissions` is a @ManyToMany inside `Role` with no class of its own.
+- Every table has a model in `domain/` and a repository in `infrastructure/` — 120 models for 122 tables, because `role_permissions` is a @ManyToMany inside `Role` and `document_sequences` is used by `DocumentNumberService` with plain SQL, so neither has a class of its own.
 - Main tables also get a controller, request/response DTOs, a service and a mapper. Child tables (invoice_items, user_roles, route_stops…) are saved through their parent's service, so they have no controller of their own.
 - Every service is an interface (`StudentService`) with its implementation in `application/impl/` (`StudentServiceImpl`, annotated `@Service @Transactional`). Controllers depend on the interface only.
 - Each module has a `<Module>Permissions.java` (e.g. `PeoplePermissions`) whose constants copy the `code` column of `V2__seed_permissions.sql` for that module. Controllers protect endpoints with `@RequirePermission(PeoplePermissions.STUDENT_CREATE)` (in `common/security/`); which roles hold each code lives in `role_permissions` and is changed with the roles API.
@@ -1243,8 +1243,7 @@ ums/
 │   │       │   │   ├── V2__seed_permissions.sql
 │   │       │   │   ├── V3__seed_roles_and_admin.sql
 │   │       │   │   ├── V4__seed_geo_areas.sql
-│   │       │   │   ├── V5__seed_countries.sql
-│   │       │   │   └── V6__users_phone_login.sql
+│   │       │   │   └── V5__seed_countries.sql
 │   │       │   └── testdata/
 │   │       │       └── V1000__sample_data.sql
 │   │       ├── i18n/

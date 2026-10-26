@@ -61,7 +61,7 @@ and that everything else needs a login.
 Every message the API sends (errors, field checks, the password-reset email) is a key in
 `src/main/resources/i18n/messages.properties` (English) and `messages_km.properties` (Khmer).
 The language of an answer: the app's `Accept-Language` header (`km` or `en`), else the logged-in user's saved
-language (`PUT /api/v1/auth/me/language`), else `DEFAULT_LANGUAGE` (km). Emails use the user's saved language.
+language (`PUT /api/v1/auth/me/language`), else `DEFAULT_LANGUAGE` (en). Emails use the user's saved language.
 In code, throw `new BusinessException("error.some.key", value…)` and add the key to both files; words inside a
 message can be translated too by passing `new DefaultMessageSourceResolvable("some.key")` as a value.
 

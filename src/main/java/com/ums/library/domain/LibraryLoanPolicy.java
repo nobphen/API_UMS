@@ -3,6 +3,7 @@ package com.ums.library.domain;
 import com.ums.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
@@ -10,11 +11,14 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /** Borrowing rules for one kind of borrower: how many books, for how long, and the fines. */
 @Getter
 @Setter
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "library_loan_policies")
 public class LibraryLoanPolicy extends BaseEntity {
 
@@ -58,6 +62,7 @@ public class LibraryLoanPolicy extends BaseEntity {
     @Column(name = "block_on_unpaid_fines", nullable = false)
     private boolean blockOnUnpaidFines = true;
 
+    @LastModifiedBy
     @Column(name = "updated_by")
     private Long updatedBy;
 

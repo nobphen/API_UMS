@@ -1,5 +1,6 @@
 package com.ums.config;
 
+import com.ums.security.filter.JsonSecurityErrorHandler;
 import com.ums.security.filter.SessionActivityFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +32,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;                 // CustomUserDetailsService
     private final JwtAuthenticationConverter jwtAuthenticationConverter; // from JwtConfig
     private final SessionActivityFilter sessionActivityFilter;
+    private final JsonSecurityErrorHandler jsonSecurityErrorHandler;    // 401 / 403 as ApiResponse JSON
 
     /// Lets @RequirePermission(...) fill its codes into its @PreAuthorize expression
     @Bean
@@ -69,9 +71,17 @@ public class SecurityConfig {
         );
 
         /// Security Mechanism ( JWT ) — every request's Bearer token is checked with the public key
-        http.oauth2ResourceServer(jwt -> jwt.jwt(jwtConfigurer -> jwtConfigurer
-                .decoder(jwtDecoder)
-                .jwtAuthenticationConverter(jwtAuthenticationConverter)));
+        http.oauth2ResourceServer(jwt -> jwt
+                .jwt(jwtConfigurer -> jwtConfigurer
+                        .decoder(jwtDecoder)
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter))
+                .authenticationEntryPoint(jsonSecurityErrorHandler)
+                .accessDeniedHandler(jsonSecurityErrorHandler));
+
+        /// 401 / 403 as the same JSON as every other error ( ApiResponse )
+        http.exceptionHandling(exception -> exception
+                .authenticationEntryPoint(jsonSecurityErrorHandler)
+                .accessDeniedHandler(jsonSecurityErrorHandler));
 
         /// Track session activity after the token is verified
         http.addFilterAfter(sessionActivityFilter, BearerTokenAuthenticationFilter.class);

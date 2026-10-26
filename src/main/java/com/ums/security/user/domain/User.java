@@ -56,7 +56,7 @@ public class User extends BaseEntity {
 
     /** "km" or "en": the language of notifications and emails sent when the user is not in the app. */
     @Column(name = "preferred_language", nullable = false)
-    private String preferredLanguage = "km";
+    private String preferredLanguage = "en";
 
     public enum UserType { STUDENT, STAFF, GUARDIAN, APPLICANT, ADMIN }
 

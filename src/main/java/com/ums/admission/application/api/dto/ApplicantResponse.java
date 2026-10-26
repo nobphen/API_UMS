@@ -1,5 +1,6 @@
 package com.ums.admission.application.api.dto;
 
+import com.ums.common.response.PhoneDisplay;
 import com.ums.people.domain.Person;
 import java.time.LocalDate;
 
@@ -12,7 +13,7 @@ public record ApplicantResponse(
         String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
-        String phone,
+        @PhoneDisplay String phone,
         String email,
         String highSchool,
         Integer grade12Year,

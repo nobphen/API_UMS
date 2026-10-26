@@ -62,4 +62,28 @@ public final class PhoneNumbers {
         }
         return phone;
     }
+
+    /**
+     * For showing a saved number (API answers): Cambodian numbers in the local form people read, others unchanged.
+     * <pre>
+     * "+855969530336" → "096 953 0336"
+     * "+85512345678"  → "012 345 678"
+     * "+66812345678"  → "+66812345678"
+     * </pre>
+     * The answer can be sent back as it is: {@link #normalize(String)} turns it into +855… again.
+     *
+     * @param phone saved number, e.g. +855969530336
+     * @return the number to show, or the text unchanged when it is not a Cambodian number
+     */
+    public static String format(String phone) {
+        String normalized = normalize(phone);
+        if (normalized == null || !normalized.startsWith("+" + CAMBODIA)) {
+            return phone;
+        }
+        String local = "0" + normalized.substring(CAMBODIA.length() + 1);
+        if (local.length() != 9 && local.length() != 10) {
+            return local;
+        }
+        return local.substring(0, 3) + " " + local.substring(3, 6) + " " + local.substring(6);
+    }
 }

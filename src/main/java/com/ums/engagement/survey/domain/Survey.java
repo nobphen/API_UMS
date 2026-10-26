@@ -3,16 +3,20 @@ package com.ums.engagement.survey.domain;
 import com.ums.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "surveys")
 public class Survey extends BaseEntity {
 
@@ -48,6 +52,7 @@ public class Survey extends BaseEntity {
 
     public enum Status { DRAFT, OPEN, CLOSED }
     /** The user who made the survey. */
+    @CreatedBy
     @Column(name = "created_by")
     private Long createdBy;
 }

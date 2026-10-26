@@ -1,14 +1,14 @@
 -- =====================================================================
--- University Management System - PostgreSQL schema (121 tables, 20 modules)
+-- University Management System - PostgreSQL schema (122 tables, 20 modules)
 -- Java Spring Boot + JPA. Use as Flyway V1__init_schema.sql
 -- =====================================================================
 
--- ---------- 1. SECURITY & DYNAMIC RBAC (8) ----------
+-- ---------- 1. SECURITY & DYNAMIC RBAC (9) ----------
 CREATE TABLE users (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username            VARCHAR(100) NOT NULL UNIQUE,
     email               VARCHAR(150) UNIQUE,
-    phone               VARCHAR(30),
+    phone               VARCHAR(30)  UNIQUE CHECK (phone ~ '^\+[1-9][0-9]{7,14}$'),  -- login by phone (password or SMS code): one account per number; one format, +85512345678 (same rule as PhoneNumbers.E164)
     password_hash       VARCHAR(255) NOT NULL,
     user_type           VARCHAR(20)  NOT NULL CHECK (user_type IN ('STUDENT','STAFF','GUARDIAN','APPLICANT','ADMIN')),
     status              VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','LOCKED','DISABLED')),
@@ -17,7 +17,7 @@ CREATE TABLE users (
     session_ttl_days    INT NOT NULL DEFAULT 180 CHECK (session_ttl_days IN (7,30,90,180,365)),  -- auto-terminate sessions inactive this long
     must_change_password BOOLEAN NOT NULL DEFAULT FALSE,   -- temporary password (new account, admin reset): only a password change is allowed
     password_changed_at TIMESTAMPTZ,
-    preferred_language  VARCHAR(2) NOT NULL DEFAULT 'km' CHECK (preferred_language IN ('km','en')),  -- notifications and emails go out in this language
+    preferred_language  VARCHAR(2) NOT NULL DEFAULT 'en' CHECK (preferred_language IN ('km','en')),  -- notifications and emails go out in this language
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by          BIGINT,
@@ -119,6 +119,15 @@ CREATE TABLE audit_logs (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_audit_entity ON audit_logs (entity, entity_id);
+
+-- The last number given to each kind of document, per year (DocumentNumberService):
+-- INV-2026-00001, INV-2026-00002 … and back to 00001 in a new year. No entity: read and written with one SQL statement.
+CREATE TABLE document_sequences (
+    prefix      VARCHAR(10) NOT NULL,     -- INV, PAY, FRM, APP …
+    year        INT         NOT NULL,
+    last_value  BIGINT      NOT NULL,
+    PRIMARY KEY (prefix, year)
+);
 
 -- ---------- 2. ORGANIZATION (5) ----------
 CREATE TABLE faculties (

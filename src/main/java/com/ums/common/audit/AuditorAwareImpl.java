@@ -1,5 +1,6 @@
 package com.ums.common.audit;
 
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
@@ -15,7 +16,7 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
     public Optional<Long> getCurrentAuditor() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            return Optional.of(Long.valueOf(jwtAuth.getToken().getSubject()));
+            return Optional.of(Long.valueOf(Objects.requireNonNull(jwtAuth.getToken().getSubject())));
         }
         return Optional.empty();
     }

@@ -94,7 +94,7 @@ public class AuthController {
                 Long.valueOf(Objects.requireNonNull(jwt.getClaimAsString("sid"))),
                 jwt.getClaimAsStringList("authorities"),
                 Boolean.TRUE.equals(jwt.getClaimAsBoolean("pwd_change")),
-                Objects.requireNonNullElse(jwt.getClaimAsString("lang"), "km")));
+                Objects.requireNonNullElse(jwt.getClaimAsString("lang"), "en")));
     }
 
     /** The user switches between Khmer and English; notifications and emails follow it too. */

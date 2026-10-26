@@ -3,16 +3,20 @@ package com.ums.chat.conversation.domain;
 import com.ums.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "conversations")
 public class Conversation extends BaseEntity {
 
@@ -39,6 +43,7 @@ public class Conversation extends BaseEntity {
 
     public enum Type { DIRECT, GROUP, CLASS, LEAVE_REQUEST, STUDENT_REQUEST }
     /** The user who started the conversation. */
+    @CreatedBy
     @Column(name = "created_by")
     private Long createdBy;
 

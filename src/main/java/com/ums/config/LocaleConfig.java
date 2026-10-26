@@ -15,7 +15,7 @@ import org.springframework.web.servlet.LocaleResolver;
 /**
  * Which language the API answers in: Khmer or English. Messages come from i18n/messages*.properties.
  * Order: the app's Accept-Language header, then the language saved for the logged-in user (the token's
- * "lang" claim), then ums.default-language (km).
+ * "lang" claim), then ums.default-language (en).
  */
 @Configuration
 public class LocaleConfig {
@@ -23,7 +23,7 @@ public class LocaleConfig {
     public static final List<Locale> SUPPORTED = List.of(Locale.forLanguageTag("km"), Locale.ENGLISH);
 
     @Bean
-    public LocaleResolver localeResolver(@Value("${ums.default-language:km}") String defaultLanguage) {
+    public LocaleResolver localeResolver(@Value("${ums.default-language:en}") String defaultLanguage) {
         Locale fallback = Locale.forLanguageTag(defaultLanguage);
         return new LocaleResolver() {
             @Override

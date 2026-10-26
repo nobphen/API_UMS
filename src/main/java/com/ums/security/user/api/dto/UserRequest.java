@@ -17,5 +17,5 @@ public record UserRequest(
         Integer sessionTtlDays,   // 7, 30, 90, 180 or 365; empty = 180
 
         @Pattern(regexp = "^(km|en)$", message = "{validation.language}")
-        String preferredLanguage) {   // empty = km
+        String preferredLanguage) {   // empty = en
 }

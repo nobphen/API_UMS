@@ -24,6 +24,10 @@ spring:
       port: ${REDIS_PORT:6379}
       repositories:
         enabled: false   # Redis is used via RedisTemplate only; all repositories are JPA
+    web:
+      pageable:
+        one-indexed-parameters: true   # ?page=1 is the first page (PageResponse answers page 1 too)
+        max-page-size: 100             # ?size=100000 is cut to 100, so one call can't load a whole table
   messages:
     basename: i18n/messages
     encoding: UTF-8
@@ -37,7 +41,7 @@ springdoc:
     path: /swagger-ui.html
 
 ums:
-  default-language: ${DEFAULT_LANGUAGE:km}   # API language when the app sends no Accept-Language and nobody is logged in (km or en)
+  default-language: ${DEFAULT_LANGUAGE:en}   # API language when the app sends no Accept-Language and nobody is logged in (km or en)
   first-admin:          # only used when no SUPER_ADMIN exists yet (a new server); see FirstAdminSetup
     username: ${UMS_ADMIN_USERNAME:}
     password: ${UMS_ADMIN_PASSWORD:}

@@ -1,5 +1,6 @@
 package com.ums.finance.payment.domain;
 
+import com.ums.common.audit.Auditable;
 import com.ums.common.entity.BaseEntity;
 import com.ums.finance.Currency;
 import com.ums.finance.invoice.domain.Invoice;
@@ -18,6 +19,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "payments")
 public class Payment extends BaseEntity {

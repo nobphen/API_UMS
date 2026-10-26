@@ -13,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Loads a user by username, email or phone number for login, with authorities from their active roles. */
 @Service
-@Transactional(readOnly = true)
+// "user not found" must not mark the caller's login transaction rollback-only (that turned a wrong username into a 500)
+@Transactional(readOnly = true, noRollbackFor = UsernameNotFoundException.class)
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
