@@ -75,4 +75,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return true when the email is taken
      */
     boolean existsByEmailIgnoreCase(String email);
+
+    /**
+     * The user with this email, ignoring case, for the email verification after sign-up.
+     * <pre>
+     * SELECT u.* FROM users u WHERE upper(u.email) = upper(?)
+     * </pre>
+     *
+     * @param email email to look for
+     * @return the user, or empty when no one has the email
+     */
+    Optional<User> findByEmailIgnoreCase(String email);
 }

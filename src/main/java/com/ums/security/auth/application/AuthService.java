@@ -6,14 +6,15 @@ import com.ums.security.auth.api.dto.LoginRequest;
 import com.ums.security.auth.api.dto.OtpLoginRequest;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
+import com.ums.security.auth.api.dto.RegisterResponse;
 import com.ums.security.auth.api.dto.TokenResponse;
 import java.util.Optional;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 public interface AuthService {
 
-    /** Creates an APPLICANT account and logs it in straight away. */
-    TokenResponse register(RegisterRequest request, String ipAddress, String userAgent);
+    /** Creates a PENDING APPLICANT account and emails a code; the applicant verifies it, then logs in. */
+    RegisterResponse register(RegisterRequest request);
 
     /** Username, email or phone number + password → new session with access and refresh tokens. */
     TokenResponse login(LoginRequest request, String ipAddress, String userAgent);

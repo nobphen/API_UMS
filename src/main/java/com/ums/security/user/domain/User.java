@@ -60,5 +60,6 @@ public class User extends BaseEntity {
 
     public enum UserType { STUDENT, STAFF, GUARDIAN, APPLICANT, ADMIN }
 
-    public enum Status { ACTIVE, LOCKED, DISABLED }
+    /** PENDING: signed up, email not verified yet, can't log in. */
+    public enum Status { PENDING, ACTIVE, LOCKED, DISABLED }
 }

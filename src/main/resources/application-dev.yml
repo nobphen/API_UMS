@@ -18,3 +18,5 @@ ums:
     log-code: true   # no mail server locally: the reset code is written to the log instead
   otp:
     log-code: true   # no SMS gateway locally: the login code is written to the log instead
+  email-verify:
+    log-code: true   # no mail server locally: the verification code is written to the log instead

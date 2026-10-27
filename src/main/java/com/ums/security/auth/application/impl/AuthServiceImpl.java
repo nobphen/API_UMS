@@ -9,8 +9,10 @@ import com.ums.security.auth.api.dto.LoginRequest;
 import com.ums.security.auth.api.dto.OtpLoginRequest;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
+import com.ums.security.auth.api.dto.RegisterResponse;
 import com.ums.security.auth.api.dto.TokenResponse;
 import com.ums.security.auth.application.AuthService;
+import com.ums.security.auth.application.EmailVerificationService;
 import com.ums.security.auth.application.JwtService;
 import com.ums.security.auth.application.OtpLoginService;
 import com.ums.security.auth.application.PermissionCacheService;
@@ -59,6 +61,7 @@ public class AuthServiceImpl implements AuthService {
     private final PermissionCacheService permissionCacheService;
     private final QrLoginService qrLoginService;
     private final OtpLoginService otpLoginService;
+    private final EmailVerificationService emailVerificationService;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
@@ -66,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
     /// REGISTER -----------------------------------------------------
     @Override
     @Transactional
-    public TokenResponse register(RegisterRequest request, String ipAddress, String userAgent) {
+    public RegisterResponse register(RegisterRequest request) {
         if (!request.password().equals(request.confirmPassword())) {
             throw new BusinessException("error.password.mismatch");
         }
@@ -91,7 +94,8 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setUserType(User.UserType.APPLICANT);
-        user.setLastLoginAt(OffsetDateTime.now());
+        // TODO email verify: turned off for now (user is ACTIVE by default); uncomment before going live
+        // user.setStatus(User.Status.PENDING);   // can't log in until the email is verified
         userRepository.save(user);
 
         UserRole userRole = new UserRole();
@@ -99,9 +103,10 @@ public class AuthServiceImpl implements AuthService {
         userRole.setRole(applicantRole);
         userRoleRepository.save(userRole);
 
-        // Logged in straight away: same session + tokens as a normal login
-        return openSession(user, permissionCacheService.reload(user.getId()), request.device(), ipAddress, userAgent,
-                UserSession.LoginMethod.PASSWORD, true);
+        // No tokens here: the applicant types the emailed code (/verify-email), then logs in
+        // TODO email verify: turned off for now; uncomment before going live
+        // emailVerificationService.sendCode(user);
+        return new RegisterResponse(user.getId(), user.getUsername(), user.getEmail());
     }
 
     /// LOGIN --------------------------------------------------------
@@ -115,6 +120,12 @@ public class AuthServiceImpl implements AuthService {
         } catch (BadCredentialsException ex) {
             recordFailedLogin(request.username());
             throw ex;
+        } catch (DisabledException ex) {
+            // Spring says "disabled" for PENDING too; tell the applicant to verify the email instead
+            boolean pending = userRepository.findByLogin(request.username())
+                    .filter(u -> u.getStatus() == User.Status.PENDING)
+                    .isPresent();
+            throw pending ? new DisabledException("auth.account_pending", ex) : ex;
         }
 
         AuthUser authUser = (AuthUser) auth.getPrincipal();

@@ -26,6 +26,6 @@ public class AuthUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return status != User.Status.DISABLED;
+        return status != User.Status.DISABLED && status != User.Status.PENDING;   // PENDING: email not verified yet
     }
 }

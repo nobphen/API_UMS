@@ -12,9 +12,13 @@ import com.ums.security.auth.api.dto.OtpSendRequest;
 import com.ums.security.auth.api.dto.QrLoginResponse;
 import com.ums.security.auth.api.dto.RefreshTokenRequest;
 import com.ums.security.auth.api.dto.RegisterRequest;
+import com.ums.security.auth.api.dto.RegisterResponse;
+import com.ums.security.auth.api.dto.ResendVerifyEmailRequest;
 import com.ums.security.auth.api.dto.ResetPasswordRequest;
 import com.ums.security.auth.api.dto.TokenResponse;
+import com.ums.security.auth.api.dto.VerifyEmailRequest;
 import com.ums.security.auth.application.AuthService;
+import com.ums.security.auth.application.EmailVerificationService;
 import com.ums.security.auth.application.OtpLoginService;
 import com.ums.security.auth.application.PasswordResetService;
 import com.ums.security.auth.application.QrLoginService;
@@ -46,13 +50,29 @@ public class AuthController {
     private final QrLoginService qrLoginService;
     private final OtpLoginService otpLoginService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
     private final UserService userService;
 
-    /** Applicants sign up here; the new account is logged in straight away. */
+    /// SIGN UP: 1. register (code sent by email) → 2. verify-email → 3. login
+
+    /** Applicants sign up here; no tokens until the email is verified. */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<TokenResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
-        return ApiResponse.ok(authService.register(request, clientIp(http), http.getHeader("User-Agent")));
+    public ApiResponse<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.ok(authService.register(request));
+    }
+
+    @PostMapping("/verify-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        emailVerificationService.verify(request.email(), request.code());
+    }
+
+    /** Always 202, whether or not the email has a pending account. */
+    @PostMapping("/verify-email/resend")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void resendVerifyEmail(@Valid @RequestBody ResendVerifyEmailRequest request) {
+        emailVerificationService.resendCode(request.email());
     }
 
     @PostMapping("/login")

@@ -72,3 +72,8 @@ ums:
     code-ttl: 5m
     max-attempts: 5
     log-code: false   # dev only: write the code to the log while no SMS gateway is set up
+  email-verify:       # applicants verify their email after sign-up (/api/v1/auth/verify-email)
+    code-ttl: 15m
+    max-attempts: 5
+    mail-from: ${MAIL_FROM:no-reply@ums.local}
+    log-code: false   # dev only: write the code to the log when no mail server is set up
