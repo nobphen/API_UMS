@@ -60,4 +60,15 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
      */
     boolean existsByUserIdAndProgramIdAndStatusInAndDeletedAtIsNull(Long userId, Long programId,
                                                                      Collection<Student.Status> statuses);
+
+    /**
+     * Whether a student studies (or studied) this program, deleted students not counted. Used by ProgramService.delete.
+     * <pre>
+     * SELECT EXISTS (SELECT 1 FROM students s WHERE s.program_id = ? AND s.deleted_at IS NULL)
+     * </pre>
+     *
+     * @param programId program id
+     * @return true when at least one student record uses the program
+     */
+    boolean existsByProgramIdAndDeletedAtIsNull(Long programId);
 }

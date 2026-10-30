@@ -11,7 +11,7 @@ CREATE TABLE users (
     phone               VARCHAR(30)  UNIQUE CHECK (phone ~ '^\+[1-9][0-9]{7,14}$'),  -- login by phone (password or SMS code): one account per number; one format, +85512345678 (same rule as PhoneNumbers.E164)
     password_hash       VARCHAR(255) NOT NULL,
     user_type           VARCHAR(20)  NOT NULL CHECK (user_type IN ('STUDENT','STAFF','GUARDIAN','APPLICANT','ADMIN')),
-    status              VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','LOCKED','DISABLED')),
+    status              VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('PENDING','ACTIVE','LOCKED','DISABLED')),  -- PENDING: applicant signed up, email not verified yet (POST /api/v1/auth/verify-email)
     failed_login_count  INT NOT NULL DEFAULT 0,
     last_login_at       TIMESTAMPTZ,
     session_ttl_days    INT NOT NULL DEFAULT 180 CHECK (session_ttl_days IN (7,30,90,180,365)),  -- auto-terminate sessions inactive this long
