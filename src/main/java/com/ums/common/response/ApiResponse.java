@@ -45,6 +45,11 @@ public record ApiResponse<T>(int status, boolean success, String message, T data
         return new ApiResponse<>(0, true, "success.ok", PageResponse.of(page), null);
     }
 
+    /** GET records loaded from an id, e.g. chat messages (200): data is a {@link CursorResponse}. */
+    public static <T> ApiResponse<CursorResponse<T>> cursor(CursorResponse<T> cursor) {
+        return new ApiResponse<>(0, true, "success.ok", cursor, null);
+    }
+
     public static <T> ApiResponse<T> error(String message) {
         return new ApiResponse<>(0, false, message, null, null);
     }
