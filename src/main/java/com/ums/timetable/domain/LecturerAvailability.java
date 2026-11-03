@@ -1,6 +1,6 @@
 package com.ums.timetable.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "lecturer_availability")
-public class LecturerAvailability extends BaseEntity {
+public class LecturerAvailability extends AuditableEntity {
 
     /** The lecturer (people module). */
     @Column(name = "staff_id", nullable = false)

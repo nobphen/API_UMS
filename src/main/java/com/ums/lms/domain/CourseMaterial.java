@@ -1,6 +1,7 @@
 package com.ums.lms.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** A file, link, video or note a lecturer shares with a class section. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "course_materials")
-public class CourseMaterial extends BaseEntity {
+public class CourseMaterial extends SoftDeletableEntity {
 
     @Column(name = "class_section_id", nullable = false)
     private Long classSectionId;
@@ -47,8 +49,4 @@ public class CourseMaterial extends BaseEntity {
     /** The lecturer (staff id) who posted it. */
     @Column(name = "created_by")
     private Long createdBy;
-
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

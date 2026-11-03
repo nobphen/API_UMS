@@ -1,6 +1,6 @@
 package com.ums.asset.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "asset_maintenance")
-public class AssetMaintenance extends BaseEntity {
+public class AssetMaintenance extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "asset_id")

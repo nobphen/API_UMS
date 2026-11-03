@@ -1,6 +1,7 @@
 package com.ums.people.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import com.ums.common.util.PhoneNumbers;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,10 +16,11 @@ import org.springframework.modulith.NamedInterface;
 /** Personal details shared by students, staff and guardians. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "persons")
 @NamedInterface("person")   // used by other modules
-public class Person extends BaseEntity {
+public class Person extends SoftDeletableEntity {
 
     @Column(name = "first_name", nullable = false)
     private String firstName;

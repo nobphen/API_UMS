@@ -1,6 +1,6 @@
 package com.ums.request.leave.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "leave_requests")
-public class LeaveRequest extends BaseEntity {
+public class LeaveRequest extends AuditableEntity {
 
     @Column(name = "request_no", nullable = false, unique = true)
     private String requestNo;
@@ -50,7 +49,4 @@ public class LeaveRequest extends BaseEntity {
 
     /** PARTIAL: some teachers approved, others rejected. */
     public enum Status { PENDING, APPROVED, PARTIAL, REJECTED, CANCELLED }
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

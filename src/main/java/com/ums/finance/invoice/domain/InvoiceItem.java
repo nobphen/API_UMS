@@ -1,6 +1,6 @@
 package com.ums.finance.invoice.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.finance.fee.domain.FeeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "invoice_items")
-public class InvoiceItem extends BaseEntity {
+public class InvoiceItem extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "invoice_id")

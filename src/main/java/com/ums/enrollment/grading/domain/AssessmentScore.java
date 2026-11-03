@@ -1,6 +1,7 @@
 package com.ums.enrollment.grading.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.enrollment.registration.domain.Enrollment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,9 +17,10 @@ import lombok.Setter;
 /** One student's score on one assessment. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "assessment_scores")
-public class AssessmentScore extends BaseEntity {
+public class AssessmentScore extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "assessment_id")

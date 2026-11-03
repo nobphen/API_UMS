@@ -1,6 +1,6 @@
 package com.ums.lms.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @Entity
 @Table(name = "quiz_attempts")
-public class QuizAttempt extends BaseEntity {
+public class QuizAttempt extends AuditableEntity {
 
     @Column(name = "assessment_id", nullable = false)
     private Long assessmentId;

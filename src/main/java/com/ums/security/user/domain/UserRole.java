@@ -1,6 +1,7 @@
 package com.ums.security.user.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.security.role.domain.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,9 +15,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "user_roles")
-public class UserRole extends BaseEntity {
+public class UserRole extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")

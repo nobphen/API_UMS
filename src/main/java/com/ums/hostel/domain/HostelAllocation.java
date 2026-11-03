@@ -1,6 +1,6 @@
 package com.ums.hostel.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "hostel_allocations")
-public class HostelAllocation extends BaseEntity {
+public class HostelAllocation extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;

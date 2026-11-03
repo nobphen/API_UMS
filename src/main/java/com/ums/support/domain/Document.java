@@ -1,19 +1,20 @@
 package com.ums.support.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
 /** A file attached to any record, found by ownerType and ownerId (e.g. STUDENT and the student id). */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "documents")
-public class Document extends BaseEntity {
+public class Document extends SoftDeletableEntity {
 
     @Column(name = "owner_type", nullable = false)
     private String ownerType;
@@ -36,7 +37,4 @@ public class Document extends BaseEntity {
     /** The login account (security module) that uploaded the file. */
     @Column(name = "uploaded_by")
     private Long uploadedBy;
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

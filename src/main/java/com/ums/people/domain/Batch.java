@@ -1,6 +1,7 @@
 package com.ums.people.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -10,9 +11,10 @@ import lombok.Setter;
 /** An intake of one program, e.g. "Batch 12"; the name is unique within the program. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "batches")
-public class Batch extends BaseEntity {
+public class Batch extends SoftDeletableEntity {
 
     /** The program (academic module). */
     @Column(name = "program_id", nullable = false)

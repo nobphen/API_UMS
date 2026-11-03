@@ -1,6 +1,6 @@
 package com.ums.engagement.alumni.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "alumni_profiles")
-public class AlumniProfile extends BaseEntity {
+public class AlumniProfile extends AuditableEntity {
 
     /** The graduated student record (people module). */
     @Column(name = "student_id", nullable = false, unique = true)

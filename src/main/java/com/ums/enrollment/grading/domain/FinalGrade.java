@@ -1,6 +1,7 @@
 package com.ums.enrollment.grading.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.enrollment.registration.domain.Enrollment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,9 +19,10 @@ import lombok.Setter;
 /** The course result of one enrollment, computed from its assessment scores. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "final_grades")
-public class FinalGrade extends BaseEntity {
+public class FinalGrade extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "enrollment_id", unique = true)

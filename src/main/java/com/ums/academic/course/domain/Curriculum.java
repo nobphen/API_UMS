@@ -1,6 +1,7 @@
 package com.ums.academic.course.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -10,9 +11,10 @@ import lombok.Setter;
 /** One version of a program's study plan; the version is unique per program. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "curriculums")
-public class Curriculum extends BaseEntity {
+public class Curriculum extends SoftDeletableEntity {
 
     /** The program (organization module). */
     @Column(name = "program_id", nullable = false)

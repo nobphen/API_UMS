@@ -1,5 +1,6 @@
 package com.ums.admission.application.domain;
 
+import com.ums.common.audit.Auditable;
 import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +11,7 @@ import lombok.Setter;
 /** Someone applying for admission; keeps the grade 12 details. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "applicants")
 public class Applicant extends SoftDeletableEntity {

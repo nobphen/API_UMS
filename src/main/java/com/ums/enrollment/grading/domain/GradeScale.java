@@ -1,6 +1,7 @@
 package com.ums.enrollment.grading.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -11,9 +12,10 @@ import lombok.Setter;
 /** Maps a range of total scores to a letter grade and grade point. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "grade_scales")
-public class GradeScale extends BaseEntity {
+public class GradeScale extends SoftDeletableEntity {
 
     @Column(name = "letter", nullable = false, unique = true)
     private String letter;

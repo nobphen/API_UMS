@@ -1,6 +1,6 @@
 package com.ums.hr.leave.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "staff_leave_requests")
-public class StaffLeaveRequest extends BaseEntity {
+public class StaffLeaveRequest extends AuditableEntity {
 
     @Column(name = "staff_id", nullable = false)
     private Long staffId;

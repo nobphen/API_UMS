@@ -1,6 +1,6 @@
 package com.ums.lms.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "assignment_submissions")
-public class AssignmentSubmission extends BaseEntity {
+public class AssignmentSubmission extends AuditableEntity {
 
     @Column(name = "assessment_id", nullable = false)
     private Long assessmentId;

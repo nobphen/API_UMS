@@ -1,12 +1,11 @@
 package com.ums.request.studentrequest.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -17,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @Entity
 @Table(name = "student_requests")
-public class StudentRequest extends BaseEntity {
+public class StudentRequest extends AuditableEntity {
 
     @Column(name = "request_no", nullable = false, unique = true)
     private String requestNo;
@@ -48,7 +47,4 @@ public class StudentRequest extends BaseEntity {
     public enum RequestType { ADD_DROP, PROGRAM_TRANSFER, LEAVE_OF_ABSENCE, WITHDRAWAL, RE_EXAM, DOCUMENT }
 
     public enum Status { PENDING, IN_REVIEW, APPROVED, REJECTED, CANCELLED }
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

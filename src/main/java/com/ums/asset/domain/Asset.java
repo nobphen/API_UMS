@@ -1,6 +1,7 @@
 package com.ums.asset.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,9 +17,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "assets")
-public class Asset extends BaseEntity {
+public class Asset extends SoftDeletableEntity {
 
     @Column(name = "asset_code", nullable = false, unique = true)
     private String assetCode;

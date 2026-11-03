@@ -1,6 +1,6 @@
 package com.ums.graduation.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "transcript_requests")
-public class TranscriptRequest extends BaseEntity {
+public class TranscriptRequest extends AuditableEntity {
 
     @Column(name = "request_no", nullable = false, unique = true)
     private String requestNo;

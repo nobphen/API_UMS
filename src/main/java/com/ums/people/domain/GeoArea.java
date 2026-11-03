@@ -1,6 +1,6 @@
 package com.ums.people.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "geo_areas")
-public class GeoArea extends BaseEntity {
+public class GeoArea extends AuditableEntity {
 
     /** 2 digits for a province, 4 district, 6 commune, 8 village; starts with the parent's code. */
     @Column(name = "code", nullable = false, unique = true)

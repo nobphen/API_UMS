@@ -1,6 +1,7 @@
 package com.ums.finance.fee.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import com.ums.finance.Currency;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,9 +18,10 @@ import lombok.Setter;
 /** The price of one fee type for a program, academic year and year of study. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "fee_structures")
-public class FeeStructure extends BaseEntity {
+public class FeeStructure extends SoftDeletableEntity {
 
     @Column(name = "program_id", nullable = false)
     private Long programId;

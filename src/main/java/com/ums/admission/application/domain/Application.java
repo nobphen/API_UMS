@@ -2,7 +2,7 @@ package com.ums.admission.application.domain;
 
 import com.ums.admission.formsale.domain.ApplicationFormSale;
 import com.ums.admission.intake.domain.AdmissionIntake;
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,7 +19,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "applications")
-public class Application extends BaseEntity {
+public class Application extends AuditableEntity {
 
     @Column(name = "application_no", nullable = false, unique = true)
     private String applicationNo;

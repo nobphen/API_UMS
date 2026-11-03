@@ -1,6 +1,6 @@
 package com.ums.engagement.survey.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @Entity
 @Table(name = "survey_responses")
-public class SurveyResponse extends BaseEntity {
+public class SurveyResponse extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "survey_id")

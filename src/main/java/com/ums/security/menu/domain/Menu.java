@@ -1,6 +1,7 @@
 package com.ums.security.menu.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import com.ums.security.role.domain.Permission;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,9 +15,10 @@ import lombok.Setter;
 /** One item of the navigation menu; shown only to users holding its permission (none = shown to everyone). */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "menus")
-public class Menu extends BaseEntity {
+public class Menu extends SoftDeletableEntity {
 
     /** The parent item; null for a top-level item. */
     @ManyToOne(fetch = FetchType.LAZY)

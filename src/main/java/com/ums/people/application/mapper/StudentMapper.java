@@ -14,6 +14,9 @@ public interface StudentMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "photoUrl", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Person toPerson(StudentRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -23,6 +26,8 @@ public interface StudentMapper {
     @Mapping(target = "yearLevel", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Student toStudent(StudentRequest request);
 
     @Mapping(target = "firstName", source = "student.person.firstName")

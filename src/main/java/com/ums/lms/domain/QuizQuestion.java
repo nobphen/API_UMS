@@ -1,6 +1,7 @@
 package com.ums.lms.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** A question of an online quiz (an assessment). */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "quiz_questions")
-public class QuizQuestion extends BaseEntity {
+public class QuizQuestion extends SoftDeletableEntity {
 
     @Column(name = "assessment_id", nullable = false)
     private Long assessmentId;

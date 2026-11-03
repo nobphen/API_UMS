@@ -1,6 +1,6 @@
 package com.ums.graduation.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "certificates")
-public class Certificate extends BaseEntity {
+public class Certificate extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;

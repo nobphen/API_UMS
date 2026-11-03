@@ -1,10 +1,9 @@
 package com.ums.chat.notification.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +11,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "notifications")
-public class Notification extends BaseEntity {
+public class Notification extends AuditableEntity {
 
     /** The login account (security module) the notification is for. */
     @Column(name = "user_id", nullable = false)
@@ -33,8 +32,4 @@ public class Notification extends BaseEntity {
 
     @Column(name = "is_read", nullable = false)
     private boolean read;
-
-    /** When the notification was sent; set by the database. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

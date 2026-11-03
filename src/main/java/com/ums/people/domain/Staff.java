@@ -1,5 +1,6 @@
 package com.ums.people.domain;
 
+import com.ums.common.audit.Auditable;
 import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,6 +17,7 @@ import lombok.Setter;
 /** Everyone who works at the university, teachers included (staffType LECTURER or BOTH). */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "staff")
 public class Staff extends SoftDeletableEntity {

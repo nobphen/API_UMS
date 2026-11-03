@@ -1,6 +1,6 @@
 package com.ums.hr.payroll.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "payroll_periods")
-public class PayrollPeriod extends BaseEntity {
+public class PayrollPeriod extends AuditableEntity {
 
     @Column(name = "name", nullable = false, unique = true)
     private String name;

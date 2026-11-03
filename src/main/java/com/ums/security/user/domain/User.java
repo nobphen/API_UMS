@@ -1,6 +1,7 @@
 package com.ums.security.user.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,10 +14,11 @@ import org.springframework.modulith.NamedInterface;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "users")
 @NamedInterface("user")   // used by other modules
-public class User extends BaseEntity {
+public class User extends AuditableEntity {
 
     @Column(name = "username", nullable = false, unique = true)
     private String username;

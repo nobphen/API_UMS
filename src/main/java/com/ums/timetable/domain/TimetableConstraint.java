@@ -1,6 +1,6 @@
 package com.ums.timetable.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @Entity
 @Table(name = "timetable_constraints")
-public class TimetableConstraint extends BaseEntity {
+public class TimetableConstraint extends AuditableEntity {
 
     /** The semester (academic module). */
     @Column(name = "semester_id", nullable = false)

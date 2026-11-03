@@ -1,6 +1,6 @@
 package com.ums.hr.contract.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "employment_contracts")
-public class EmploymentContract extends BaseEntity {
+public class EmploymentContract extends AuditableEntity {
 
     @Column(name = "contract_no", nullable = false, unique = true)
     private String contractNo;

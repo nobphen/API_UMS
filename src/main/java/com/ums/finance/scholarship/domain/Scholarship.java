@@ -1,6 +1,7 @@
 package com.ums.finance.scholarship.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import com.ums.finance.fee.domain.FeeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,9 +17,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "scholarships")
-public class Scholarship extends BaseEntity {
+public class Scholarship extends SoftDeletableEntity {
 
     @Column(name = "code", nullable = false, unique = true)
     private String code;

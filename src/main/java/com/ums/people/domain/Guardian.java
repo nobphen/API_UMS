@@ -1,6 +1,7 @@
 package com.ums.people.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** A parent or other guardian of one or more students. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "guardians")
-public class Guardian extends BaseEntity {
+public class Guardian extends SoftDeletableEntity {
 
     /** The login account (security module); null when the guardian has no login. */
     @Column(name = "user_id", unique = true)

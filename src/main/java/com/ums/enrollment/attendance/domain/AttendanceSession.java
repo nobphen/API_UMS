@@ -1,6 +1,6 @@
 package com.ums.enrollment.attendance.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "attendance_sessions")
-public class AttendanceSession extends BaseEntity {
+public class AttendanceSession extends AuditableEntity {
 
     @Column(name = "class_section_id", nullable = false)
     private Long classSectionId;

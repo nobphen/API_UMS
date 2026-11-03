@@ -1,5 +1,6 @@
 package com.ums.chat.conversation.domain;
 
+import com.ums.common.audit.Auditable;
 import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,6 +16,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "messages")
 public class Message extends SoftDeletableEntity {
@@ -40,10 +42,6 @@ public class Message extends SoftDeletableEntity {
 
     @Column(name = "edited_at")
     private OffsetDateTime editedAt;
-
-    /** When the message was sent; set by the database. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 
     public enum MessageType { TEXT, IMAGE, FILE, SYSTEM }
 }

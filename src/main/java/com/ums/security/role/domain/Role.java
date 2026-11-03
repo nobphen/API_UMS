@@ -1,6 +1,7 @@
 package com.ums.security.role.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -14,9 +15,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "roles")
-public class Role extends BaseEntity {
+public class Role extends SoftDeletableEntity {
 
     @Column(name = "code", nullable = false, unique = true)
     private String code;

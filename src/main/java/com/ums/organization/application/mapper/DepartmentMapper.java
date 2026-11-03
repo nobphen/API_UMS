@@ -23,11 +23,15 @@ public interface DepartmentMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "faculty", ignore = true)              // set by the service (findFaculty)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Department toEntity(DepartmentRequest request);
 
     /** Request → the department already loaded (@MappingTarget: no new object), for update. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "faculty", ignore = true)              // set by the service (findFaculty)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void update(DepartmentRequest request, @MappingTarget Department department);
 }

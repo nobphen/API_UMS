@@ -1,6 +1,7 @@
 package com.ums.library.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** A title in the catalogue; the physical books on the shelf are its copies. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "books")
-public class Book extends BaseEntity {
+public class Book extends SoftDeletableEntity {
 
     @Column(name = "isbn")
     private String isbn;

@@ -1,5 +1,6 @@
 package com.ums.support.domain;
 
+import com.ums.common.audit.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -14,6 +15,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 /** A configurable value read by the application, e.g. session.default_ttl_days; change it here, never hard-code it. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "system_settings")

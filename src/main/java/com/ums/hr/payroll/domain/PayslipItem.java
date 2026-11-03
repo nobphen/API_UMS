@@ -1,6 +1,6 @@
 package com.ums.hr.payroll.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.hr.contract.domain.SalaryComponent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,7 +19,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "payslip_items")
-public class PayslipItem extends BaseEntity {
+public class PayslipItem extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "payslip_id")

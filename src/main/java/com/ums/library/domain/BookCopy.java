@@ -1,6 +1,7 @@
 package com.ums.library.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,9 +18,10 @@ import lombok.Setter;
 /** One physical copy of a book, identified by its barcode. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "book_copies")
-public class BookCopy extends BaseEntity {
+public class BookCopy extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "book_id")

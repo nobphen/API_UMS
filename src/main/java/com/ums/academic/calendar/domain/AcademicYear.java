@@ -1,6 +1,7 @@
 package com.ums.academic.calendar.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -10,9 +11,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "academic_years")
-public class AcademicYear extends BaseEntity {
+public class AcademicYear extends SoftDeletableEntity {
 
     /** e.g. 2026-2027. */
     @Column(name = "name", nullable = false, unique = true)

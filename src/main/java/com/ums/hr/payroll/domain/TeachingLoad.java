@@ -1,6 +1,6 @@
 package com.ums.hr.payroll.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -13,7 +13,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "teaching_loads")
-public class TeachingLoad extends BaseEntity {
+public class TeachingLoad extends AuditableEntity {
 
     @Column(name = "staff_id", nullable = false)
     private Long staffId;

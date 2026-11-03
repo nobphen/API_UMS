@@ -1,6 +1,7 @@
 package com.ums.transport.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,9 +12,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "vehicles")
-public class Vehicle extends BaseEntity {
+public class Vehicle extends SoftDeletableEntity {
 
     @Column(name = "plate_no", nullable = false, unique = true)
     private String plateNo;

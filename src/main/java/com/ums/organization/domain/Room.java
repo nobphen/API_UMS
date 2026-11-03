@@ -1,6 +1,7 @@
 package com.ums.organization.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,9 +16,10 @@ import lombok.Setter;
 /** A room in a building; the code is unique within its building. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "rooms")
-public class Room extends BaseEntity {
+public class Room extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "building_id")

@@ -1,6 +1,6 @@
 package com.ums.transport.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "transport_subscriptions")
-public class TransportSubscription extends BaseEntity {
+public class TransportSubscription extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;

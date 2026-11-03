@@ -1,6 +1,7 @@
 package com.ums.finance.fee.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -10,9 +11,10 @@ import lombok.Setter;
 /** A kind of charge: tuition, admission fee, transcript fee, ... */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "fee_types")
-public class FeeType extends BaseEntity {
+public class FeeType extends SoftDeletableEntity {
 
     @Column(name = "code", nullable = false, unique = true)
     private String code;

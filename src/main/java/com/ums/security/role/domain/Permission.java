@@ -1,6 +1,6 @@
 package com.ums.security.role.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "permissions")
-public class Permission extends BaseEntity {
+public class Permission extends AuditableEntity {
 
     /** e.g. STUDENT_VIEW; matches the constants in each module's *Permissions class. */
     @Column(name = "code", nullable = false, unique = true)

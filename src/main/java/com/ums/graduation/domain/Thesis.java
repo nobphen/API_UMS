@@ -1,6 +1,7 @@
 package com.ums.graduation.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,9 +16,10 @@ import lombok.Setter;
 /** A Bachelor thesis, Master's thesis or PhD dissertation: proposal → research → submission → defense. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "theses")
-public class Thesis extends BaseEntity {
+public class Thesis extends SoftDeletableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;
@@ -65,10 +67,6 @@ public class Thesis extends BaseEntity {
     /** The final approved copy. */
     @Column(name = "file_url")
     private String fileUrl;
-
-    /** Filled by the database when the proposal is first recorded. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 
     public enum ThesisType { BACHELOR_THESIS, MASTER_THESIS, PHD_DISSERTATION, PROJECT }
 

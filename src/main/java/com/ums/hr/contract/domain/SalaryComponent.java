@@ -1,6 +1,7 @@
 package com.ums.hr.contract.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,9 +13,10 @@ import lombok.Setter;
 /** A kind of allowance or deduction that can appear on a payslip. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "salary_components")
-public class SalaryComponent extends BaseEntity {
+public class SalaryComponent extends SoftDeletableEntity {
 
     @Column(name = "code", nullable = false, unique = true)
     private String code;

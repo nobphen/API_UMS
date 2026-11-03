@@ -1,6 +1,6 @@
 package com.ums.enrollment.attendance.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.enrollment.registration.domain.Enrollment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "attendance_records")
-public class AttendanceRecord extends BaseEntity {
+public class AttendanceRecord extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "session_id")

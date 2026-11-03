@@ -1,6 +1,7 @@
 package com.ums.chat.conversation.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -15,10 +16,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "conversations")
-public class Conversation extends BaseEntity {
+public class Conversation extends SoftDeletableEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
@@ -46,8 +48,4 @@ public class Conversation extends BaseEntity {
     @CreatedBy
     @Column(name = "created_by")
     private Long createdBy;
-
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

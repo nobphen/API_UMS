@@ -1,6 +1,7 @@
 package com.ums.exam.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,9 +15,10 @@ import lombok.Setter;
 /** When and where a class section sits an exam. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "exam_schedules")
-public class ExamSchedule extends BaseEntity {
+public class ExamSchedule extends SoftDeletableEntity {
 
     @Column(name = "class_section_id", nullable = false)
     private Long classSectionId;

@@ -1,6 +1,6 @@
 package com.ums.enrollment.registration.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "enrollments")
-public class Enrollment extends BaseEntity {
+public class Enrollment extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;

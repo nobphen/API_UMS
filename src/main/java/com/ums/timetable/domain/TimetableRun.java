@@ -1,6 +1,6 @@
 package com.ums.timetable.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "timetable_runs")
-public class TimetableRun extends BaseEntity {
+public class TimetableRun extends AuditableEntity {
 
     /** The semester (academic module). */
     @Column(name = "semester_id", nullable = false)

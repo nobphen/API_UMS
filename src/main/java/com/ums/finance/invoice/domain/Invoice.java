@@ -1,7 +1,7 @@
 package com.ums.finance.invoice.domain;
 
 import com.ums.common.audit.Auditable;
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.finance.Currency;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +11,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
@@ -24,7 +23,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "invoices")
-public class Invoice extends BaseEntity {
+public class Invoice extends AuditableEntity {
 
     @Column(name = "invoice_no", nullable = false, unique = true)
     private String invoiceNo;
@@ -69,8 +68,4 @@ public class Invoice extends BaseEntity {
     @CreatedBy
     @Column(name = "created_by")
     private Long createdBy;
-
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

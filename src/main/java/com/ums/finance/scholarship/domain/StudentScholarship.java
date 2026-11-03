@@ -1,6 +1,7 @@
 package com.ums.finance.scholarship.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** A scholarship granted to a student for one academic year. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "student_scholarships")
-public class StudentScholarship extends BaseEntity {
+public class StudentScholarship extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;

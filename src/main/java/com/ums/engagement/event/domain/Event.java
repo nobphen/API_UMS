@@ -1,6 +1,7 @@
 package com.ums.engagement.event.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,9 +13,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "events")
-public class Event extends BaseEntity {
+public class Event extends SoftDeletableEntity {
 
     @Column(name = "title", nullable = false)
     private String title;

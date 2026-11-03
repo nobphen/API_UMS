@@ -1,6 +1,6 @@
 package com.ums.hostel.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "hostel_maintenance_requests")
-public class HostelMaintenanceRequest extends BaseEntity {
+public class HostelMaintenanceRequest extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "hostel_room_id")

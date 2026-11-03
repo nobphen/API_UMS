@@ -4,13 +4,16 @@ import com.ums.common.audit.EntityChangedEvent.Action;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.time.temporal.Temporal;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.event.service.spi.EventListenerRegistry;
 import org.hibernate.event.spi.EventType;
@@ -33,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Only simple values are kept (text, numbers, dates, enums); links to other entities and lists are left out,
  * and so are secrets such as passwords.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuditLogListener implements PostInsertEventListener, PostUpdateEventListener, PostDeleteEventListener {
@@ -44,18 +48,24 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
     private final AuditorAwareImpl auditorAware;
     private final JsonMapper jsonMapper;
 
-    /** Tells Hibernate to call this listener. */
+    /**
+     * Tells Hibernate to call this listener.
+     */
     @PostConstruct
     void register() {
+        log.debug("[audit] register(): adding AuditLogListener to Hibernate");
         EventListenerRegistry registry = entityManagerFactory.unwrap(SessionFactoryImplementor.class)
                 .getServiceRegistry().getService(EventListenerRegistry.class);
+        assert registry != null;
         registry.appendListeners(EventType.POST_INSERT, this);
         registry.appendListeners(EventType.POST_UPDATE, this);
         registry.appendListeners(EventType.POST_DELETE, this);
+        log.debug("[audit] register(): done, listening for POST_INSERT, POST_UPDATE, POST_DELETE");
     }
 
     @Override
     public void onPostInsert(PostInsertEvent event) {
+        log.debug("[audit] onPostInsert(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
         publish(Action.CREATE, event.getEntity(), event.getId(), null, toJson(names, event.getState(), null));
@@ -63,40 +73,55 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
 
     @Override
     public void onPostUpdate(PostUpdateEvent event) {
+        log.debug("[audit] onPostUpdate(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
         int[] changed = event.getDirtyProperties();
         String oldValue = event.getOldState() == null ? null : toJson(names, event.getOldState(), changed);
         String newValue = toJson(names, event.getState(), changed);
-        if (newValue == null) return;   // only links or hidden fields changed
+        if (newValue == null) {   // only links or hidden fields changed
+            log.debug("[audit] onPostUpdate(): no simple field changed, skip");
+            return;
+        }
         publish(Action.UPDATE, event.getEntity(), event.getId(), oldValue, newValue);
     }
 
     @Override
     public void onPostDelete(PostDeleteEvent event) {
+        log.debug("[audit] onPostDelete(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
         publish(Action.DELETE, event.getEntity(), event.getId(), toJson(names, event.getDeletedState(), null), null);
     }
 
-    /** The event is sent at once; the audit row is written after the transaction commits. */
+    /**
+     * The event is sent at once; the audit row is written after the transaction commits.
+     */
     @Override
     public boolean requiresPostCommitHandling(EntityPersister persister) {
+        log.debug("[audit] requiresPostCommitHandling(): {}", persister.getEntityName());
         return false;
     }
 
     private static boolean isAuditable(Object entity) {
-        return entity.getClass().isAnnotationPresent(Auditable.class);
+        boolean auditable = entity.getClass().isAnnotationPresent(Auditable.class);
+        log.debug("[audit] isAuditable(): {} -> {}", entity.getClass().getSimpleName(), auditable);
+        return auditable;
     }
 
     private void publish(Action action, Object entity, Object id, String oldValue, String newValue) {
         Long entityId = id instanceof Number n ? n.longValue() : null;
         Long userId = auditorAware.getCurrentAuditor().orElse(null);
+        String ip = clientIp();
+        log.debug("[audit] publish(): {} {} id={} userId={} ip={} old={} new={}",
+                action, entity.getClass().getSimpleName(), entityId, userId, ip, oldValue, newValue);
         eventPublisher.publishEvent(new EntityChangedEvent(
-                userId, action, entity.getClass().getSimpleName(), entityId, oldValue, newValue, clientIp()));
+                userId, action, entity.getClass().getSimpleName(), entityId, oldValue, newValue, ip));
     }
 
-    /** JSON of the simple fields; only the fields at {@code indexes} when given. Null when nothing is left. */
+    /**
+     * JSON of the simple fields; only the fields at {@code indexes} when given. Null when nothing is left.
+     */
     private String toJson(String[] names, Object[] values, int[] indexes) {
         Map<String, Object> fields = new LinkedHashMap<>();
         if (indexes == null) {
@@ -104,28 +129,40 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         } else {
             for (int i : indexes) addField(fields, names[i], values[i]);
         }
-        return fields.isEmpty() ? null : jsonMapper.writeValueAsString(fields);
+        String json = fields.isEmpty() ? null : jsonMapper.writeValueAsString(fields);
+        log.debug("[audit] toJson(): {}", json);
+        return json;
     }
 
     private static void addField(Map<String, Object> fields, String name, Object value) {
-        if (HIDDEN.contains(name.toLowerCase())) return;
+        if (HIDDEN.contains(name.toLowerCase())) {
+            log.debug("[audit] addField(): {} hidden, skip", name);
+            return;
+        }
         if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
                 || value instanceof Enum<?> || value instanceof Temporal || value instanceof Date
                 || value instanceof UUID) {
             fields.put(name, value);
+        } else {
+            log.debug("[audit] addField(): {} is {}, skip", name, value.getClass().getSimpleName());
         }
     }
 
-    /** The caller's IP (the first one in X-Forwarded-For when behind a proxy); null outside a web request. */
+    /**
+     * The caller's IP (the first one in X-Forwarded-For when behind a proxy); null outside a web request.
+     */
     private static String clientIp() {
         if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
+            log.debug("[audit] clientIp(): not a web request -> null");
             return null;
         }
         HttpServletRequest request = attributes.getRequest();
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
+            log.debug("[audit] clientIp(): from X-Forwarded-For {}", forwarded);
             return forwarded.split(",")[0].trim();
         }
+        log.debug("[audit] clientIp(): {}", request.getRemoteAddr());
         return request.getRemoteAddr();
     }
 }

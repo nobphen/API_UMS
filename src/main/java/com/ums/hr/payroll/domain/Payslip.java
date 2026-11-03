@@ -1,6 +1,7 @@
 package com.ums.hr.payroll.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import com.ums.hr.contract.domain.EmploymentContract;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,9 +18,10 @@ import lombok.Setter;
 /** One staff member's pay for one payroll period; the totals are summed from its items. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "payslips")
-public class Payslip extends BaseEntity {
+public class Payslip extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "payroll_period_id")

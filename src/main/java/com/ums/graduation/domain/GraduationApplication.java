@@ -1,13 +1,12 @@
 package com.ums.graduation.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "graduation_applications")
-public class GraduationApplication extends BaseEntity {
+public class GraduationApplication extends AuditableEntity {
 
     @Column(name = "student_id", nullable = false)
     private Long studentId;
@@ -47,7 +46,4 @@ public class GraduationApplication extends BaseEntity {
     private Long approvedBy;
 
     public enum Status { PENDING, VERIFIED, APPROVED, REJECTED }
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

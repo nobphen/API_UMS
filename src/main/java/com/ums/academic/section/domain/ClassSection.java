@@ -2,7 +2,8 @@ package com.ums.academic.section.domain;
 
 import com.ums.academic.calendar.domain.Semester;
 import com.ums.academic.course.domain.Course;
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,9 +18,10 @@ import lombok.Setter;
 /** One class of a course in a semester; the section code is unique per course and semester. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "class_sections")
-public class ClassSection extends BaseEntity {
+public class ClassSection extends SoftDeletableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "course_id")

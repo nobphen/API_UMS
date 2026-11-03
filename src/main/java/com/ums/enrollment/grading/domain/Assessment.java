@@ -1,6 +1,7 @@
 package com.ums.enrollment.grading.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,9 +16,10 @@ import lombok.Setter;
 /** A graded piece of work in a class section. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "assessments")
-public class Assessment extends BaseEntity {
+public class Assessment extends SoftDeletableEntity {
 
     @Column(name = "class_section_id", nullable = false)
     private Long classSectionId;

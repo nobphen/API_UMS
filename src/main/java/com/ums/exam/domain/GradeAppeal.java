@@ -1,22 +1,23 @@
 package com.ums.exam.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
 /** A student asks for a final grade to be reviewed. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "grade_appeals")
-public class GradeAppeal extends BaseEntity {
+public class GradeAppeal extends AuditableEntity {
 
     /** The appealed grade (enrollment module). */
     @Column(name = "final_grade_id", nullable = false)
@@ -45,7 +46,4 @@ public class GradeAppeal extends BaseEntity {
     private Long reviewedBy;
 
     public enum Status { PENDING, REVIEWING, ACCEPTED, REJECTED }
-    /** Filled by the database when the row is created. */
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
 }

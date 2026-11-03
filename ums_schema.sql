@@ -36,7 +36,8 @@ CREATE TABLE roles (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by  BIGINT,
-    updated_by  BIGINT
+    updated_by  BIGINT,
+    deleted_at  TIMESTAMPTZ
 );
 
 CREATE TABLE permissions (
@@ -45,7 +46,9 @@ CREATE TABLE permissions (
     module      VARCHAR(50) NOT NULL,
     action      VARCHAR(20) NOT NULL CHECK (action IN ('VIEW','CREATE','UPDATE','DELETE','APPROVE','EXPORT','MANAGE')),
     description TEXT,
-    description_kh TEXT
+    description_kh TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE role_permissions (
@@ -63,6 +66,7 @@ CREATE TABLE user_roles (
     valid_from  DATE,
     valid_to    DATE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by  BIGINT,
     CHECK ((scope_type = 'GLOBAL' AND scope_id IS NULL) OR (scope_type <> 'GLOBAL' AND scope_id IS NOT NULL))
 );
@@ -76,7 +80,10 @@ CREATE TABLE menus (
     path          VARCHAR(200),
     icon          VARCHAR(50),
     sort_order    INT NOT NULL DEFAULT 0,
-    permission_id BIGINT REFERENCES permissions(id)
+    permission_id BIGINT REFERENCES permissions(id),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at    TIMESTAMPTZ
 );
 
 CREATE TABLE user_sessions (                     -- Telegram-style sessions: one row per logged-in device (web and mobile)
@@ -172,7 +179,10 @@ CREATE TABLE buildings (
     id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code VARCHAR(20)  NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
-    name_kh VARCHAR(100)
+    name_kh VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE rooms (
@@ -181,6 +191,9 @@ CREATE TABLE rooms (
     code        VARCHAR(20) NOT NULL,
     capacity    INT NOT NULL,
     room_type   VARCHAR(20) NOT NULL CHECK (room_type IN ('LECTURE','LAB','HALL','EXAM')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at  TIMESTAMPTZ,
     UNIQUE (building_id, code)
 );
 
@@ -209,7 +222,8 @@ CREATE TABLE persons (
     email          VARCHAR(150),
     photo_url      VARCHAR(500),               -- birth place and addresses: person_addresses
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ
 );
 
 -- Cambodia's administrative areas, one table for all four levels: province → district → commune → village.
@@ -224,6 +238,8 @@ CREATE TABLE geo_areas (
     unit_kh    VARCHAR(30),                      -- រាជធានី, ខេត្ត, ខណ្ឌ, ក្រុង, ស្រុក, សង្កាត់, ឃុំ, ភូមិ
     unit_en    VARCHAR(30),                      -- Capital, Province, Section, Municipality, District, Quarter, Commune, Village
     is_active  BOOLEAN NOT NULL DEFAULT TRUE,    -- FALSE: merged or abolished; kept so old addresses still show
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK ((level = 'PROVINCE') = (parent_id IS NULL))
 );
 CREATE INDEX ix_geo_areas_parent ON geo_areas (parent_id, name_en);
@@ -314,6 +330,8 @@ CREATE TABLE person_addresses (
     UNIQUE (person_id, address_type),
     CHECK (province_id IS NOT NULL OR address_line IS NOT NULL),
     -- provinces, districts, communes and villages are Cambodia's: no area ids on an address abroad
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (country_code = 'KH' OR (province_id IS NULL AND district_id IS NULL AND commune_id IS NULL AND village_id IS NULL))
 );
 CREATE INDEX ix_person_addresses_province ON person_addresses (province_id);
@@ -324,6 +342,9 @@ CREATE TABLE batches (
     name       VARCHAR(50) NOT NULL,
     name_kh    VARCHAR(50),
     start_year INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
     UNIQUE (program_id, name)
 );
 
@@ -374,7 +395,10 @@ CREATE TABLE guardians (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id    BIGINT UNIQUE REFERENCES users(id),
     person_id  BIGINT NOT NULL REFERENCES persons(id),
-    occupation VARCHAR(100)
+    occupation VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE student_guardians (
@@ -391,7 +415,10 @@ CREATE TABLE academic_years (
     name       VARCHAR(20) NOT NULL UNIQUE,
     start_date DATE NOT NULL,
     end_date   DATE NOT NULL,
-    is_current BOOLEAN NOT NULL DEFAULT FALSE
+    is_current BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE semesters (
@@ -405,6 +432,9 @@ CREATE TABLE semesters (
     registration_start DATE,
     registration_end   DATE,
     is_current         BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at         TIMESTAMPTZ,
     UNIQUE (academic_year_id, semester_no)
 );
 
@@ -437,6 +467,9 @@ CREATE TABLE curriculums (
     version        VARCHAR(20) NOT NULL,
     effective_year INT NOT NULL,
     status         VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ,
     UNIQUE (program_id, version)
 );
 
@@ -456,6 +489,9 @@ CREATE TABLE class_sections (
     section_code VARCHAR(10) NOT NULL,
     capacity     INT NOT NULL,
     status       VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','CLOSED','CANCELLED','COMPLETED')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ,
     UNIQUE (course_id, semester_id, section_code)
 );
 
@@ -464,6 +500,8 @@ CREATE TABLE class_section_lecturers (           -- a class can have several tea
     class_section_id BIGINT NOT NULL REFERENCES class_sections(id) ON DELETE CASCADE,
     staff_id         BIGINT NOT NULL REFERENCES staff(id),
     teaching_role    VARCHAR(20) NOT NULL DEFAULT 'MAIN' CHECK (teaching_role IN ('MAIN','ASSISTANT','LAB','TUTORIAL')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (class_section_id, staff_id)
 );
 -- MAIN is responsible for the class: submits the final grades
@@ -478,6 +516,8 @@ CREATE TABLE class_schedules (
     day_of_week      INT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
     start_time       TIME NOT NULL,
     end_time         TIME NOT NULL,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (end_time > start_time)
 );
 
@@ -487,7 +527,10 @@ CREATE TABLE fee_types (
     code          VARCHAR(30) NOT NULL UNIQUE,
     name          VARCHAR(100) NOT NULL,
     name_kh       VARCHAR(100),
-    is_refundable BOOLEAN NOT NULL DEFAULT FALSE
+    is_refundable BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at    TIMESTAMPTZ
 );
 
 CREATE TABLE scholarships (
@@ -497,7 +540,10 @@ CREATE TABLE scholarships (
     name_kh                VARCHAR(150),
     discount_type          VARCHAR(10) NOT NULL CHECK (discount_type IN ('PERCENT','FIXED')),
     value                  NUMERIC(12,2) NOT NULL,
-    applies_to_fee_type_id BIGINT REFERENCES fee_types(id)
+    applies_to_fee_type_id BIGINT REFERENCES fee_types(id),
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at             TIMESTAMPTZ
 );
 
 -- ---------- 5. ADMISSION (7) ----------
@@ -508,7 +554,10 @@ CREATE TABLE admission_intakes (
     name_kh          VARCHAR(100),
     open_date        DATE NOT NULL,
     close_date       DATE NOT NULL,
-    status           VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','OPEN','CLOSED'))
+    status           VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','OPEN','CLOSED')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at       TIMESTAMPTZ
 );
 
 CREATE TABLE intake_programs (
@@ -519,6 +568,8 @@ CREATE TABLE intake_programs (
     form_price    NUMERIC(12,2) NOT NULL DEFAULT 0,
     admission_fee NUMERIC(12,2) NOT NULL DEFAULT 0,
     exam_date     DATE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (intake_id, program_id)
 );
 
@@ -563,7 +614,9 @@ CREATE TABLE invoice_items (
     description VARCHAR(255),
     quantity    INT NOT NULL DEFAULT 1,
     unit_price  NUMERIC(12,2) NOT NULL,
-    amount      NUMERIC(12,2) NOT NULL
+    amount      NUMERIC(12,2) NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE payments (
@@ -577,7 +630,9 @@ CREATE TABLE payments (
     reference_no  VARCHAR(100),
     paid_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     received_by   BIGINT REFERENCES users(id),
-    status        VARCHAR(20) NOT NULL DEFAULT 'SUCCESS' CHECK (status IN ('SUCCESS','REVERSED'))
+    status        VARCHAR(20) NOT NULL DEFAULT 'SUCCESS' CHECK (status IN ('SUCCESS','REVERSED')),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_payments_invoice ON payments (invoice_id);
 CREATE INDEX ix_payments_paid_at ON payments (paid_at);
@@ -592,7 +647,9 @@ CREATE TABLE application_form_sales (
     payment_id  BIGINT REFERENCES payments(id),
     sold_by     BIGINT REFERENCES users(id),
     sold_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status      VARCHAR(20) NOT NULL DEFAULT 'SOLD' CHECK (status IN ('SOLD','USED','VOID','REFUNDED'))
+    status      VARCHAR(20) NOT NULL DEFAULT 'SOLD' CHECK (status IN ('SOLD','USED','VOID','REFUNDED')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE applications (
@@ -615,7 +672,9 @@ CREATE TABLE applications (
     previous_student_id       BIGINT REFERENCES students(id),   -- set when they studied here before
     submitted_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     decided_by                BIGINT REFERENCES staff(id),
-    decided_at                TIMESTAMPTZ
+    decided_at                TIMESTAMPTZ,
+    created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_applications_intake_status ON applications (intake_id, status);
 ALTER TABLE students ADD CONSTRAINT fk_student_application FOREIGN KEY (application_id) REFERENCES applications(id);
@@ -628,7 +687,9 @@ CREATE TABLE application_documents (
                                                             'CV','RECOMMENDATION','RESEARCH_PROPOSAL','LANGUAGE_CERT','OTHER')),
     file_url       VARCHAR(500) NOT NULL,
     verified       BOOLEAN NOT NULL DEFAULT FALSE,
-    verified_by    BIGINT REFERENCES staff(id)
+    verified_by    BIGINT REFERENCES staff(id),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE application_results (
@@ -639,7 +700,9 @@ CREATE TABLE application_results (
     total_score     NUMERIC(5,2),
     decision        VARCHAR(20) CHECK (decision IN ('ACCEPTED','WAITLISTED','REJECTED')),
     scholarship_id  BIGINT REFERENCES scholarships(id),
-    remark          TEXT
+    remark          TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- 10c. FINANCE: remaining ----------
@@ -651,6 +714,9 @@ CREATE TABLE fee_structures (
     year_level       INT NOT NULL DEFAULT 1,
     amount           NUMERIC(12,2) NOT NULL,
     currency         VARCHAR(3) NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD','KHR')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at       TIMESTAMPTZ,
     UNIQUE (program_id, academic_year_id, fee_type_id, year_level)
 );
 
@@ -661,6 +727,8 @@ CREATE TABLE student_scholarships (
     academic_year_id BIGINT NOT NULL REFERENCES academic_years(id),
     approved_by      BIGINT REFERENCES staff(id),
     status           VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_id, scholarship_id, academic_year_id)
 );
 
@@ -674,7 +742,9 @@ CREATE TABLE conversations (
     reference_id     BIGINT,
     created_by       BIGINT REFERENCES users(id),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_message_at  TIMESTAMPTZ
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_message_at  TIMESTAMPTZ,
+    deleted_at       TIMESTAMPTZ
 );
 
 CREATE TABLE messages (
@@ -686,7 +756,8 @@ CREATE TABLE messages (
     reply_to_id     BIGINT REFERENCES messages(id),
     edited_at       TIMESTAMPTZ,
     deleted_at      TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_messages_conv ON messages (conversation_id, id DESC);
 
@@ -708,7 +779,9 @@ CREATE TABLE message_attachments (
     file_name  VARCHAR(255) NOT NULL,
     file_url   VARCHAR(500) NOT NULL,
     mime_type  VARCHAR(100),
-    size_bytes BIGINT
+    size_bytes BIGINT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE notifications (
@@ -719,7 +792,8 @@ CREATE TABLE notifications (
     message    TEXT,
     link       VARCHAR(500),
     is_read    BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_notifications_user_unread ON notifications (user_id) WHERE is_read = FALSE;
 
@@ -730,7 +804,10 @@ CREATE TABLE leave_types (
     name              VARCHAR(100) NOT NULL,
     name_kh           VARCHAR(100),
     requires_document BOOLEAN NOT NULL DEFAULT FALSE,
-    max_days          INT
+    max_days          INT,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at        TIMESTAMPTZ
 );
 
 CREATE TABLE leave_requests (
@@ -744,6 +821,7 @@ CREATE TABLE leave_requests (
     status          VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','PARTIAL','REJECTED','CANCELLED')),
     conversation_id BIGINT UNIQUE REFERENCES conversations(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (to_date >= from_date)
 );
 CREATE INDEX ix_leave_student ON leave_requests (student_id);
@@ -756,6 +834,8 @@ CREATE TABLE enrollments (
     enrolled_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     status           VARCHAR(20) NOT NULL DEFAULT 'ENROLLED' CHECK (status IN ('ENROLLED','DROPPED','COMPLETED','WITHDRAWN')),
     is_retake        BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_id, class_section_id)
 );
 CREATE INDEX ix_enrollments_section ON enrollments (class_section_id);
@@ -767,7 +847,9 @@ CREATE TABLE attendance_sessions (
     start_time       TIME,
     end_time         TIME,
     topic            VARCHAR(255),
-    taken_by         BIGINT REFERENCES staff(id)
+    taken_by         BIGINT REFERENCES staff(id),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_att_sessions ON attendance_sessions (class_section_id, session_date);
 
@@ -778,6 +860,8 @@ CREATE TABLE attendance_records (
     status           VARCHAR(10) NOT NULL CHECK (status IN ('PRESENT','ABSENT','LATE','EXCUSED')),
     leave_request_id BIGINT REFERENCES leave_requests(id),
     note             VARCHAR(255),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (session_id, enrollment_id)
 );
 
@@ -785,7 +869,10 @@ CREATE TABLE assessment_types (
     id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(50) NOT NULL,
-    name_kh VARCHAR(50)
+    name_kh VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE assessments (
@@ -795,7 +882,10 @@ CREATE TABLE assessments (
     title              VARCHAR(150) NOT NULL,
     max_score          NUMERIC(6,2) NOT NULL,
     weight_percent     NUMERIC(5,2) NOT NULL CHECK (weight_percent BETWEEN 0 AND 100),
-    due_date           DATE
+    due_date           DATE,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at         TIMESTAMPTZ
 );
 
 CREATE TABLE assessment_scores (
@@ -805,6 +895,8 @@ CREATE TABLE assessment_scores (
     score         NUMERIC(6,2),
     graded_by     BIGINT REFERENCES staff(id),
     graded_at     TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (assessment_id, enrollment_id)
 );
 
@@ -814,7 +906,10 @@ CREATE TABLE grade_scales (
     min_score   NUMERIC(5,2) NOT NULL,
     max_score   NUMERIC(5,2) NOT NULL,
     grade_point NUMERIC(3,2) NOT NULL,
-    is_pass     BOOLEAN NOT NULL DEFAULT TRUE
+    is_pass     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at  TIMESTAMPTZ
 );
 
 CREATE TABLE final_grades (
@@ -825,7 +920,9 @@ CREATE TABLE final_grades (
     grade_point   NUMERIC(3,2),
     status        VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','SUBMITTED','APPROVED','PUBLISHED')),
     approved_by   BIGINT REFERENCES staff(id),
-    published_at  TIMESTAMPTZ
+    published_at  TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE student_semester_results (
@@ -837,6 +934,8 @@ CREATE TABLE student_semester_results (
     gpa               NUMERIC(3,2),
     cgpa              NUMERIC(3,2),
     academic_standing VARCHAR(20) CHECK (academic_standing IN ('GOOD','PROBATION','DISMISSED')),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_id, semester_id)
 );
 
@@ -849,7 +948,10 @@ CREATE TABLE exam_schedules (
     exam_date        DATE NOT NULL,
     start_time       TIME NOT NULL,
     end_time         TIME NOT NULL,
-    room_id          BIGINT REFERENCES rooms(id)
+    room_id          BIGINT REFERENCES rooms(id),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at       TIMESTAMPTZ
 );
 
 CREATE TABLE exam_seat_assignments (
@@ -860,6 +962,8 @@ CREATE TABLE exam_seat_assignments (
     is_eligible      BOOLEAN NOT NULL DEFAULT TRUE,
     ineligible_reason VARCHAR(100),
     attended         BOOLEAN,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (exam_schedule_id, enrollment_id)
 );
 
@@ -879,7 +983,8 @@ CREATE TABLE grade_appeals (
     old_score      NUMERIC(5,2),
     new_score      NUMERIC(5,2),
     reviewed_by    BIGINT REFERENCES staff(id),
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- 8b. LEAVE & STUDENT REQUESTS (remaining) ----------
@@ -891,6 +996,8 @@ CREATE TABLE leave_request_classes (
     status           VARCHAR(10) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
     comment          TEXT,
     decided_at       TIMESTAMPTZ,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (leave_request_id, class_section_id)
 );
 CREATE INDEX ix_leave_classes_teacher ON leave_request_classes (teacher_id, status);
@@ -904,7 +1011,8 @@ CREATE TABLE student_requests (
     reason          TEXT,
     status          VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','IN_REVIEW','APPROVED','REJECTED','CANCELLED')),
     conversation_id BIGINT UNIQUE REFERENCES conversations(id),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE request_approvals (
@@ -916,6 +1024,8 @@ CREATE TABLE request_approvals (
     status             VARCHAR(10) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED','SKIPPED')),
     comment            TEXT,
     decided_at         TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_request_id, step_no)
 );
 
@@ -931,6 +1041,7 @@ CREATE TABLE graduation_applications (
     status            VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','VERIFIED','APPROVED','REJECTED')),
     approved_by       BIGINT REFERENCES staff(id),
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_id, academic_year_id)
 );
 
@@ -942,7 +1053,8 @@ CREATE TABLE transcript_requests (
     copies          INT NOT NULL DEFAULT 1,
     invoice_id      BIGINT REFERENCES invoices(id),
     status          VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','PAID','PRINTED','COLLECTED','CANCELLED')),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE certificates (
@@ -952,7 +1064,9 @@ CREATE TABLE certificates (
     certificate_no    VARCHAR(30) NOT NULL UNIQUE,
     issue_date        DATE NOT NULL,
     verification_code VARCHAR(64) NOT NULL UNIQUE,
-    file_url          VARCHAR(500)
+    file_url          VARCHAR(500),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Bachelor theses, Master's theses and PhD dissertations: proposal → research → submission → defense.
@@ -974,7 +1088,8 @@ CREATE TABLE theses (
     result_grade         VARCHAR(30),            -- e.g. A, Excellent, Pass with minor revisions
     file_url             VARCHAR(500),           -- the final approved copy
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at           TIMESTAMPTZ
 );
 -- One thesis in progress per student record; a failed or withdrawn one can be followed by a new one
 CREATE UNIQUE INDEX ux_theses_student_open ON theses (student_id) WHERE status NOT IN ('FAILED','WITHDRAWN');
@@ -986,6 +1101,8 @@ CREATE TABLE thesis_supervisors (                -- a staff member, or someone f
     external_name        VARCHAR(150),
     external_institution VARCHAR(200),
     supervisor_role      VARCHAR(20) NOT NULL DEFAULT 'MAIN' CHECK (supervisor_role IN ('MAIN','CO_SUPERVISOR')),
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (thesis_id, staff_id),
     CHECK (staff_id IS NOT NULL OR external_name IS NOT NULL)
 );
@@ -1001,6 +1118,8 @@ CREATE TABLE thesis_committee_members (          -- the defense committee
     committee_role       VARCHAR(20) NOT NULL CHECK (committee_role IN ('CHAIR','EXAMINER','EXTERNAL_EXAMINER','SECRETARY')),
     score                NUMERIC(5,2),
     comment              TEXT,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (staff_id IS NOT NULL OR external_name IS NOT NULL)
 );
 
@@ -1015,7 +1134,10 @@ CREATE TABLE announcements (
     target_id    BIGINT,
     published_by BIGINT REFERENCES users(id),
     published_at TIMESTAMPTZ,
-    expires_at   TIMESTAMPTZ
+    expires_at   TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ
 );
 
 CREATE TABLE documents (
@@ -1027,7 +1149,9 @@ CREATE TABLE documents (
     file_url    VARCHAR(500) NOT NULL,
     mime_type   VARCHAR(100),
     uploaded_by BIGINT REFERENCES users(id),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at  TIMESTAMPTZ
 );
 CREATE INDEX ix_documents_owner ON documents (owner_type, owner_id);
 
@@ -1055,7 +1179,8 @@ CREATE TABLE employment_contracts (
     hourly_rate   NUMERIC(12,2),
     currency      VARCHAR(3) NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD','KHR')),
     status        VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','EXPIRED','TERMINATED')),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_contracts_staff ON employment_contracts (staff_id);
 
@@ -1066,7 +1191,10 @@ CREATE TABLE salary_components (
     name_kh        VARCHAR(100),
     component_type VARCHAR(20) NOT NULL CHECK (component_type IN ('ALLOWANCE','DEDUCTION')),
     is_taxable     BOOLEAN NOT NULL DEFAULT TRUE,
-    calc_type      VARCHAR(10) NOT NULL DEFAULT 'FIXED' CHECK (calc_type IN ('FIXED','PERCENT'))
+    calc_type      VARCHAR(10) NOT NULL DEFAULT 'FIXED' CHECK (calc_type IN ('FIXED','PERCENT')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ
 );
 
 CREATE TABLE staff_salary_components (
@@ -1075,7 +1203,9 @@ CREATE TABLE staff_salary_components (
     component_id BIGINT NOT NULL REFERENCES salary_components(id),
     amount       NUMERIC(12,2) NOT NULL,
     valid_from   DATE NOT NULL,
-    valid_to     DATE
+    valid_to     DATE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE staff_leave_types (
@@ -1084,7 +1214,10 @@ CREATE TABLE staff_leave_types (
     name          VARCHAR(100) NOT NULL,
     name_kh       VARCHAR(100),
     days_per_year NUMERIC(5,1),
-    is_paid       BOOLEAN NOT NULL DEFAULT TRUE
+    is_paid       BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at    TIMESTAMPTZ
 );
 
 CREATE TABLE staff_leave_requests (
@@ -1098,6 +1231,7 @@ CREATE TABLE staff_leave_requests (
     status        VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED','CANCELLED')),
     approved_by   BIGINT REFERENCES staff(id),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (to_date >= from_date)
 );
 
@@ -1110,6 +1244,8 @@ CREATE TABLE teaching_loads (
     hours_taught     NUMERIC(6,1) NOT NULL DEFAULT 0,
     rate             NUMERIC(12,2),
     amount           NUMERIC(12,2),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (staff_id, class_section_id)
 );
 
@@ -1120,7 +1256,9 @@ CREATE TABLE payroll_periods (
     start_date  DATE NOT NULL,
     end_date    DATE NOT NULL,
     status      VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','PROCESSING','APPROVED','PAID')),
-    approved_by BIGINT REFERENCES staff(id)
+    approved_by BIGINT REFERENCES staff(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE payslips (
@@ -1134,6 +1272,8 @@ CREATE TABLE payslips (
     tax               NUMERIC(12,2) NOT NULL DEFAULT 0,
     net               NUMERIC(12,2) NOT NULL DEFAULT 0,
     status            VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','APPROVED','PAID')),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (payroll_period_id, staff_id)
 );
 
@@ -1143,7 +1283,9 @@ CREATE TABLE payslip_items (
     component_id BIGINT REFERENCES salary_components(id),
     description  VARCHAR(200),
     item_type    VARCHAR(20) NOT NULL CHECK (item_type IN ('BASIC','TEACHING','ALLOWANCE','DEDUCTION','TAX')),
-    amount       NUMERIC(12,2) NOT NULL
+    amount       NUMERIC(12,2) NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- 14. LIBRARY (7) ----------
@@ -1152,7 +1294,10 @@ CREATE TABLE library_categories (
     code      VARCHAR(20) NOT NULL UNIQUE,
     name      VARCHAR(100) NOT NULL,
     name_kh   VARCHAR(100),
-    parent_id BIGINT REFERENCES library_categories(id)
+    parent_id BIGINT REFERENCES library_categories(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE books (
@@ -1166,7 +1311,9 @@ CREATE TABLE books (
     language     VARCHAR(20),
     category_id  BIGINT REFERENCES library_categories(id),
     cover_url    VARCHAR(500),
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ
 );
 CREATE INDEX ix_books_isbn ON books (isbn);
 
@@ -1177,7 +1324,10 @@ CREATE TABLE book_copies (
     shelf_location VARCHAR(50),
     acquired_date  DATE,
     price          NUMERIC(12,2),
-    status         VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE','ON_LOAN','RESERVED','LOST','DAMAGED','WITHDRAWN'))
+    status         VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE','ON_LOAN','RESERVED','LOST','DAMAGED','WITHDRAWN')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ
 );
 
 CREATE TABLE book_loans (
@@ -1189,7 +1339,9 @@ CREATE TABLE book_loans (
     due_date    DATE NOT NULL,
     returned_at TIMESTAMPTZ,
     renew_count INT NOT NULL DEFAULT 0,
-    status      VARCHAR(20) NOT NULL DEFAULT 'ON_LOAN' CHECK (status IN ('ON_LOAN','RETURNED','OVERDUE','LOST'))
+    status      VARCHAR(20) NOT NULL DEFAULT 'ON_LOAN' CHECK (status IN ('ON_LOAN','RETURNED','OVERDUE','LOST')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_loans_user ON book_loans (user_id, status);
 CREATE UNIQUE INDEX ux_loans_open_copy ON book_loans (copy_id) WHERE returned_at IS NULL;
@@ -1200,7 +1352,9 @@ CREATE TABLE book_reservations (
     user_id     BIGINT NOT NULL REFERENCES users(id),
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at  TIMESTAMPTZ,
-    status      VARCHAR(20) NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING','READY','FULFILLED','CANCELLED','EXPIRED'))
+    status      VARCHAR(20) NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING','READY','FULFILLED','CANCELLED','EXPIRED')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE library_fines (
@@ -1212,7 +1366,8 @@ CREATE TABLE library_fines (
     invoice_id BIGINT REFERENCES invoices(id),
     status     VARCHAR(20) NOT NULL DEFAULT 'UNPAID' CHECK (status IN ('UNPAID','PAID','WAIVED')),
     waived_by  BIGINT REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Borrowing rules per kind of borrower; the librarian changes them in Settings.
@@ -1233,6 +1388,7 @@ CREATE TABLE library_loan_policies (
     reservation_hold_days  INT NOT NULL DEFAULT 3 CHECK (reservation_hold_days > 0),  -- READY reservations expire after this
     block_on_unpaid_fines  BOOLEAN NOT NULL DEFAULT TRUE,                  -- no new loans while a fine is UNPAID
     updated_by             BIGINT REFERENCES users(id),
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -1253,7 +1409,10 @@ CREATE TABLE hostels (
     name_kh         VARCHAR(100),
     gender_type     VARCHAR(10) NOT NULL CHECK (gender_type IN ('MALE','FEMALE','MIXED')),
     address         TEXT,
-    warden_staff_id BIGINT REFERENCES staff(id)
+    warden_staff_id BIGINT REFERENCES staff(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at      TIMESTAMPTZ
 );
 
 CREATE TABLE hostel_rooms (
@@ -1265,6 +1424,9 @@ CREATE TABLE hostel_rooms (
     capacity           INT NOT NULL,
     price_per_semester NUMERIC(12,2) NOT NULL,
     status             VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at         TIMESTAMPTZ,
     UNIQUE (hostel_id, room_no)
 );
 
@@ -1273,6 +1435,9 @@ CREATE TABLE hostel_beds (
     hostel_room_id BIGINT NOT NULL REFERENCES hostel_rooms(id),
     bed_no         VARCHAR(10) NOT NULL,
     status         VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE','OCCUPIED','MAINTENANCE')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ,
     UNIQUE (hostel_room_id, bed_no)
 );
 
@@ -1284,7 +1449,9 @@ CREATE TABLE hostel_allocations (
     check_in_date  DATE,
     check_out_date DATE,
     invoice_id     BIGINT REFERENCES invoices(id),
-    status         VARCHAR(20) NOT NULL DEFAULT 'RESERVED' CHECK (status IN ('RESERVED','ACTIVE','CHECKED_OUT','CANCELLED'))
+    status         VARCHAR(20) NOT NULL DEFAULT 'RESERVED' CHECK (status IN ('RESERVED','ACTIVE','CHECKED_OUT','CANCELLED')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX ux_hostel_bed_active     ON hostel_allocations (bed_id)     WHERE status = 'ACTIVE';
 CREATE UNIQUE INDEX ux_hostel_student_active ON hostel_allocations (student_id) WHERE status = 'ACTIVE';
@@ -1297,6 +1464,7 @@ CREATE TABLE hostel_maintenance_requests (
     priority       VARCHAR(10) NOT NULL DEFAULT 'MEDIUM' CHECK (priority IN ('LOW','MEDIUM','HIGH')),
     status         VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_PROGRESS','DONE')),
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at    TIMESTAMPTZ
 );
 
@@ -1308,7 +1476,10 @@ CREATE TABLE vehicles (
     capacity     INT NOT NULL,
     driver_name  VARCHAR(100),
     driver_phone VARCHAR(30),
-    status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'
+    status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ
 );
 
 CREATE TABLE transport_routes (
@@ -1320,7 +1491,10 @@ CREATE TABLE transport_routes (
     morning_departure TIME,
     evening_departure TIME,
     fee_per_semester  NUMERIC(12,2) NOT NULL DEFAULT 0,
-    status            VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'
+    status            VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at        TIMESTAMPTZ
 );
 
 CREATE TABLE route_stops (
@@ -1332,6 +1506,8 @@ CREATE TABLE route_stops (
     latitude    NUMERIC(9,6),
     longitude   NUMERIC(9,6),
     pickup_time TIME,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (route_id, stop_order)
 );
 
@@ -1343,6 +1519,8 @@ CREATE TABLE transport_subscriptions (
     semester_id BIGINT NOT NULL REFERENCES semesters(id),
     invoice_id  BIGINT REFERENCES invoices(id),
     status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','CANCELLED')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (student_id, semester_id)
 );
 
@@ -1358,7 +1536,9 @@ CREATE TABLE course_materials (
     content          TEXT,
     published_at     TIMESTAMPTZ,
     created_by       BIGINT REFERENCES staff(id),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at       TIMESTAMPTZ
 );
 
 CREATE TABLE assignment_submissions (
@@ -1371,6 +1551,8 @@ CREATE TABLE assignment_submissions (
     is_late       BOOLEAN NOT NULL DEFAULT FALSE,
     attempt_no    INT NOT NULL DEFAULT 1,
     feedback      TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (assessment_id, enrollment_id, attempt_no)
 );
 
@@ -1380,7 +1562,10 @@ CREATE TABLE quiz_questions (
     question_text TEXT NOT NULL,
     question_type VARCHAR(10) NOT NULL CHECK (question_type IN ('SINGLE','MULTIPLE','TRUE_FALSE','SHORT')),
     points        NUMERIC(6,2) NOT NULL DEFAULT 1,
-    sort_order    INT NOT NULL DEFAULT 0
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at    TIMESTAMPTZ
 );
 
 CREATE TABLE quiz_question_options (
@@ -1388,7 +1573,9 @@ CREATE TABLE quiz_question_options (
     question_id BIGINT NOT NULL REFERENCES quiz_questions(id) ON DELETE CASCADE,
     option_text TEXT NOT NULL,
     is_correct  BOOLEAN NOT NULL DEFAULT FALSE,
-    sort_order  INT NOT NULL DEFAULT 0
+    sort_order  INT NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE quiz_attempts (
@@ -1401,6 +1588,8 @@ CREATE TABLE quiz_attempts (
     answers       JSONB,
     score         NUMERIC(6,2),
     status        VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' CHECK (status IN ('IN_PROGRESS','SUBMITTED','GRADED')),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (assessment_id, enrollment_id, attempt_no)
 );
 
@@ -1413,6 +1602,8 @@ CREATE TABLE lecturer_availability (
     start_time   TIME NOT NULL,
     end_time     TIME NOT NULL,
     is_available BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (end_time > start_time)
 );
 
@@ -1424,7 +1615,9 @@ CREATE TABLE timetable_constraints (
     scope_id        BIGINT,
     value           JSONB,
     is_hard         BOOLEAN NOT NULL DEFAULT TRUE,
-    weight          INT NOT NULL DEFAULT 1
+    weight          INT NOT NULL DEFAULT 1,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE timetable_runs (
@@ -1435,7 +1628,9 @@ CREATE TABLE timetable_runs (
     finished_at    TIMESTAMPTZ,
     status         VARCHAR(20) NOT NULL DEFAULT 'RUNNING' CHECK (status IN ('RUNNING','DONE','FAILED','APPROVED')),
     conflict_count INT,
-    score          NUMERIC(10,2)
+    score          NUMERIC(10,2),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE timetable_run_items (
@@ -1445,7 +1640,9 @@ CREATE TABLE timetable_run_items (
     room_id          BIGINT REFERENCES rooms(id),
     day_of_week      INT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
     start_time       TIME NOT NULL,
-    end_time         TIME NOT NULL
+    end_time         TIME NOT NULL,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_run_items_run ON timetable_run_items (run_id);
 
@@ -1459,6 +1656,7 @@ CREATE TABLE alumni_profiles (
     industry           VARCHAR(100),
     linkedin_url       VARCHAR(300),
     consent_to_contact BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -1475,7 +1673,10 @@ CREATE TABLE events (
     room_id      BIGINT REFERENCES rooms(id),
     organizer_id BIGINT REFERENCES users(id),
     capacity     INT,
-    status       VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','PUBLISHED','CANCELLED','COMPLETED'))
+    status       VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','PUBLISHED','CANCELLED','COMPLETED')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ
 );
 
 CREATE TABLE event_registrations (
@@ -1485,6 +1686,8 @@ CREATE TABLE event_registrations (
     registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     status        VARCHAR(20) NOT NULL DEFAULT 'REGISTERED' CHECK (status IN ('REGISTERED','CANCELLED')),
     attended      BOOLEAN,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (event_id, user_id)
 );
 
@@ -1498,7 +1701,10 @@ CREATE TABLE surveys (
     open_at      TIMESTAMPTZ,
     close_at     TIMESTAMPTZ,
     created_by   BIGINT REFERENCES users(id),
-    status       VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','OPEN','CLOSED'))
+    status       VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','OPEN','CLOSED')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ
 );
 
 CREATE TABLE survey_questions (
@@ -1509,7 +1715,9 @@ CREATE TABLE survey_questions (
     question_type VARCHAR(10) NOT NULL CHECK (question_type IN ('RATING','TEXT','SINGLE','MULTIPLE')),
     options       JSONB,
     is_required   BOOLEAN NOT NULL DEFAULT TRUE,
-    sort_order    INT NOT NULL DEFAULT 0
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE survey_responses (
@@ -1519,7 +1727,9 @@ CREATE TABLE survey_responses (
     respondent_id    BIGINT REFERENCES users(id),     -- NULL when the survey is anonymous
     respondent_token VARCHAR(64) NOT NULL,            -- one-way hash, blocks double submit
     answers          JSONB NOT NULL,
-    submitted_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+    submitted_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX ux_survey_once ON survey_responses (survey_id, COALESCE(class_section_id, 0), respondent_token);
 
@@ -1529,7 +1739,10 @@ CREATE TABLE asset_categories (
     code               VARCHAR(20) NOT NULL UNIQUE,
     name               VARCHAR(100) NOT NULL,
     name_kh            VARCHAR(100),
-    depreciation_years INT
+    depreciation_years INT,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at         TIMESTAMPTZ
 );
 
 CREATE TABLE assets (
@@ -1544,7 +1757,10 @@ CREATE TABLE assets (
     purchase_cost  NUMERIC(12,2),
     supplier       VARCHAR(150),
     warranty_until DATE,
-    status         VARCHAR(20) NOT NULL DEFAULT 'IN_USE' CHECK (status IN ('IN_USE','IN_STORE','UNDER_REPAIR','DISPOSED'))
+    status         VARCHAR(20) NOT NULL DEFAULT 'IN_USE' CHECK (status IN ('IN_USE','IN_STORE','UNDER_REPAIR','DISPOSED')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at     TIMESTAMPTZ
 );
 
 CREATE TABLE asset_assignments (
@@ -1553,7 +1769,9 @@ CREATE TABLE asset_assignments (
     staff_id       BIGINT NOT NULL REFERENCES staff(id),
     assigned_at    DATE NOT NULL DEFAULT CURRENT_DATE,
     returned_at    DATE,
-    condition_note TEXT
+    condition_note TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX ux_asset_open_assignment ON asset_assignments (asset_id) WHERE returned_at IS NULL;
 
@@ -1564,7 +1782,9 @@ CREATE TABLE asset_maintenance (
     description      TEXT NOT NULL,
     cost             NUMERIC(12,2),
     vendor           VARCHAR(150),
-    next_due_date    DATE
+    next_due_date    DATE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- Session defaults (change in Settings; never hard-code) ----------

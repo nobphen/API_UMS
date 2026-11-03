@@ -1,6 +1,7 @@
 package com.ums.admission.intake.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,9 +14,10 @@ import lombok.Setter;
 /** An admission round (e.g. "2026 main intake") during which applications are accepted. */
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "admission_intakes")
-public class AdmissionIntake extends BaseEntity {
+public class AdmissionIntake extends SoftDeletableEntity {
 
     @Column(name = "academic_year_id", nullable = false)
     private Long academicYearId;

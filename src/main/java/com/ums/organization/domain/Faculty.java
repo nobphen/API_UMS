@@ -1,5 +1,6 @@
 package com.ums.organization.domain;
 
+import com.ums.common.audit.Auditable;
 import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +10,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @Table(name = "faculties")
 public class Faculty extends SoftDeletableEntity {

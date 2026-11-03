@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @MappedSuperclass
-public abstract class SoftDeletableEntity extends BaseEntity {
+public abstract class SoftDeletableEntity extends AuditableEntity {
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;

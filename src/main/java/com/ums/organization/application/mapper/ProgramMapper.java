@@ -24,11 +24,15 @@ public interface ProgramMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "department", ignore = true)                 // set by the service (findDepartment)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Program toEntity(ProgramRequest request);
 
     /** Request → the program already loaded (@MappingTarget: no new object), for update. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "department", ignore = true)                 // set by the service (findDepartment)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void update(ProgramRequest request, @MappingTarget Program program);
 }

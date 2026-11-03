@@ -1,6 +1,7 @@
 package com.ums.engagement.survey.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.audit.Auditable;
+import com.ums.common.entity.SoftDeletableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -15,10 +16,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
+@Auditable
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "surveys")
-public class Survey extends BaseEntity {
+public class Survey extends SoftDeletableEntity {
 
     @Column(name = "title", nullable = false)
     private String title;

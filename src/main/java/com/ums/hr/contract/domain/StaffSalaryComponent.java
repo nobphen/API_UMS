@@ -1,6 +1,6 @@
 package com.ums.hr.contract.domain;
 
-import com.ums.common.entity.BaseEntity;
+import com.ums.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "staff_salary_components")
-public class StaffSalaryComponent extends BaseEntity {
+public class StaffSalaryComponent extends AuditableEntity {
 
     @Column(name = "staff_id", nullable = false)
     private Long staffId;
