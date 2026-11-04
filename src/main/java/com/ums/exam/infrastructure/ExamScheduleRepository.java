@@ -4,4 +4,6 @@ import com.ums.exam.domain.ExamSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long> {
+
+    boolean existsByRoomIdAndDeletedAtIsNull(Long roomId);
 }
