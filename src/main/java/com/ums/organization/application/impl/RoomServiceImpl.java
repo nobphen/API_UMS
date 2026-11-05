@@ -31,7 +31,6 @@ import java.util.Locale;
 @Service
 @Transactional
 @RequiredArgsConstructor
-@Slf4j
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
@@ -52,7 +51,6 @@ public class RoomServiceImpl implements RoomService {
             throw new BusinessException("error.room.code_exists",code);
         }
 
-        log.info("log build id {} :",request.buildingId());
 
         // 3. The building must exist and not be deleted
         Building building = findBuilding(request.buildingId());

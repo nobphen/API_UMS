@@ -5,9 +5,26 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+/** Countries; the id is the ISO code (KH, TH …), so findById("KH") finds Cambodia. */
 public interface CountryRepository extends JpaRepository<Country, String> {
 
-    /** Active countries for a dropdown, Cambodia first, then by English name; q filters by Khmer or English name or code. */
+    /**
+     * Active countries for a dropdown, Cambodia first, then by English name.
+     * q filters by English or Khmer name, nationality or exact code (empty q = all);
+     * withNationality = true leaves out territories with no nationality.
+     * <pre>
+     * SELECT c.* FROM countries c
+     * WHERE c.is_active = TRUE
+     *   AND (? = FALSE OR c.nationality_en IS NOT NULL)
+     *   AND (LOWER(c.name_en) LIKE LOWER('%' || ? || '%') OR c.name_kh LIKE '%' || ? || '%'
+     *        OR LOWER(c.nationality_en) LIKE LOWER('%' || ? || '%') OR UPPER(c.code) = UPPER(?))
+     * ORDER BY CASE WHEN c.code = 'KH' THEN 0 ELSE 1 END, c.name_en
+     * </pre>
+     *
+     * @param q               search text; "" = all
+     * @param withNationality true for the Nationality list
+     * @return the countries, Cambodia first
+     */
     @Query("""
             select c from Country c
             where c.active = true

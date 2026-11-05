@@ -9,28 +9,34 @@ import com.ums.people.application.GeoAreaService;
 import com.ums.people.application.mapper.GeoAreaMapper;
 import com.ums.people.domain.GeoArea;
 import com.ums.people.infrastructure.GeoAreaRepository;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * See {@link GeoAreaService}. Every method runs in one transaction (@Transactional on the class):
+ * when a rule fails, nothing is saved. Reads use readOnly = true, which is a little faster.
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class GeoAreaServiceImpl implements GeoAreaService {
 
     private final GeoAreaRepository geoAreaRepository;
-    private final GeoAreaMapper geoAreaMapper;
+    private final GeoAreaMapper geoAreaMapper;   // entity → response (MapStruct)
 
     @Override
     @Transactional(readOnly = true)
     public List<GeoAreaResponse> list(Long parentId, String q, boolean includeInactive) {
         String search = q == null ? "" : q.trim();   // "" matches every name
         return geoAreaRepository.findForList(parentId, search, includeInactive).stream()
-                .map(geoAreaMapper::toResponse)
+                .map(geoAreaMapper::toResponse)   // entity → response
                 .toList();
     }
 
@@ -44,15 +50,23 @@ public class GeoAreaServiceImpl implements GeoAreaService {
     @Transactional(readOnly = true)
     public List<GeoAreaResponse> path(Long id) {
         List<GeoAreaResponse> path = new ArrayList<>();
-        for (GeoArea area = find(id); area != null; area = area.getParent()) {
+
+        // Walk up from the area to its province: village → commune → district → province
+        GeoArea area = find(id);
+
+        while (area != null) {
             path.add(geoAreaMapper.toResponse(area));
+            area = area.getParent();   // one level up; a province has no parent, so the loop stops
         }
-        Collections.reverse(path);
+
+        Collections.reverse(path);     // province first
         return path;
     }
 
     @Override
     public GeoAreaResponse create(GeoAreaRequest request) {
+
+        // 1. The parent must fit the level: a province has none, the others need the level directly above
         GeoArea.Level level = request.level();
         GeoArea parent = null;
         if (level == GeoArea.Level.PROVINCE) {
@@ -64,12 +78,12 @@ public class GeoAreaServiceImpl implements GeoAreaService {
                 throw new BusinessException("error.geo.needs_parent", level(level), level(level.parentLevel()));
             }
             parent = find(request.parentId());
-            if (parent.getLevel() != level.parentLevel()) {
+            if (parent.getLevel() != level.parentLevel()) {   // e.g. a commune inside a province
                 throw new BusinessException("error.geo.must_be_inside", level(level), level(level.parentLevel()));
             }
         }
 
-        // Official codes: 2 digits per level, each starting with the parent's code
+        // 2. Official codes: 2 digits per level (ordinal 0..3 → 2, 4, 6, 8), each starting with the parent's code
         int expectedLength = (level.ordinal() + 1) * 2;
         if (request.code().length() != expectedLength) {
             throw new BusinessException("error.geo.code_length", level(level), expectedLength);
@@ -77,10 +91,13 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         if (parent != null && !request.code().startsWith(parent.getCode())) {
             throw new BusinessException("error.geo.code_prefix", parent.getCode());
         }
+
+        // 3. The code must be free (the database keeps it UNIQUE, inactive areas included)
         if (geoAreaRepository.existsByCode(request.code())) {
             throw new BusinessException("error.geo.code_used", request.code());
         }
 
+        // 4. Build the new area from the checked values
         GeoArea area = new GeoArea();
         area.setCode(request.code());
         area.setLevel(level);
@@ -89,20 +106,28 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         area.setNameEn(request.nameEn().trim());
         area.setUnitKh(request.unitKh());
         area.setUnitEn(request.unitEn());
+
+        // 5. INSERT, then answer with the saved area (it has its id now)
         geoAreaRepository.save(area);
         return geoAreaMapper.toResponse(area);
     }
 
     @Override
     public GeoAreaResponse update(Long id, GeoAreaUpdateRequest request) {
+
+        // 1. The area must exist (inactive ones too: an admin may switch one back on)
         GeoArea area = find(id);
+
+        // 2. Only names, units and active change; code, level and parent are not in the request
         area.setNameKh(request.nameKh().trim());
         area.setNameEn(request.nameEn().trim());
         area.setUnitKh(request.unitKh());
         area.setUnitEn(request.unitEn());
-        if (request.active() != null) {
+        if (request.active() != null) {   // null = keep as it is
             area.setActive(request.active());
         }
+
+        // 3. No save() needed: the area was loaded in this transaction, so JPA writes the UPDATE at commit
         return geoAreaMapper.toResponse(area);
     }
 
@@ -111,6 +136,7 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         return new DefaultMessageSourceResolvable("geo.level." + level);
     }
 
+    /** The area, active or not, or 404 when it does not exist. Used by get, path, create (parent) and update. */
     private GeoArea find(Long id) {
         return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("error.geo.not_found"));
     }
