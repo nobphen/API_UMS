@@ -22,10 +22,12 @@ public class LocaleConfig {
 
     public static final List<Locale> SUPPORTED = List.of(Locale.forLanguageTag("km"), Locale.ENGLISH);
 
+    /** The bean Spring uses to pick the language of each request (order in the class comment). */
     @Bean
     public LocaleResolver localeResolver(@Value("${ums.default-language:en}") String defaultLanguage) {
         Locale fallback = Locale.forLanguageTag(defaultLanguage);
         return new LocaleResolver() {
+            /** steps: Accept-Language (km or en) → the token's "lang" claim → the default language. */
             @Override
             public Locale resolveLocale(HttpServletRequest request) {
                 String header = request.getHeader("Accept-Language");
@@ -44,6 +46,7 @@ public class LocaleConfig {
                 return fallback;
             }
 
+            /** Not allowed: the language comes only from the header or the user's saved language. */
             @Override
             public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
                 throw new UnsupportedOperationException("Send Accept-Language, or change the user's language");

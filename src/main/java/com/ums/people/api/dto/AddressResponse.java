@@ -19,6 +19,7 @@ public record AddressResponse(
         String fullKh,    // ផ្ទះលេខ 12, ផ្លូវ 271, ភូមិ…, សង្កាត់…, ខណ្ឌ…, រាជធានីភ្នំពេញ
         String fullEn) {  // No. 12, St. 271, … Village, … Sangkat, … Khan, Phnom Penh
 
+    /** One level of the address (village, commune, district or province): id and code for forms, name and unit word for printing. */
     public record Area(Long id, String code, String nameKh, String nameEn, String unitKh, String unitEn) {
     }
 }

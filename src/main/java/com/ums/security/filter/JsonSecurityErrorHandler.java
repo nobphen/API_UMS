@@ -42,6 +42,7 @@ public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, Acces
         write(request, response, HttpStatus.UNAUTHORIZED, key);
     }
 
+    /** Logged in, but without the permission for this URL: 403 error.forbidden. */
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
             throws IOException {

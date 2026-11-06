@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Data shared by every kind of person (student, staff, guardian). For now only the addresses.
+ * personId is the id in persons, not the student or staff id (StudentResponse has personId).
+ */
 @RestController
 @RequestMapping("/api/v1/persons")
 @RequiredArgsConstructor
@@ -27,13 +31,21 @@ public class PersonController {
 
     /// ADDRESSES: birth place, permanent and current ----------------
 
+    /**
+     * The person's addresses, with the full text in Khmer and English.
+     * <pre>GET /api/v1/persons/7/addresses</pre>
+     */
     @GetMapping("/{personId}/addresses")
     @RequirePermission({PeoplePermissions.STUDENT_VIEW, PeoplePermissions.STAFF_VIEW})
     public ApiResponse<List<AddressResponse>> addresses(@PathVariable Long personId) {
         return ApiResponse.ok(personAddressService.getByPerson(personId));
     }
 
-    /** Replaces all the person's addresses with this list. */
+    /**
+     * Replaces all the person's addresses with this list: one left out is deleted, an empty list deletes all.
+     * <pre>PUT /api/v1/persons/7/addresses  [{"type": "CURRENT", "areaId": 12010101, "houseNo": "12A"},
+     *                                      {"type": "PERMANENT", "countryCode": "TH", "addressLine": "Bangkok"}]</pre>
+     */
     @PutMapping("/{personId}/addresses")
     @RequirePermission({PeoplePermissions.STUDENT_UPDATE, PeoplePermissions.STAFF_MANAGE, PeoplePermissions.GUARDIAN_MANAGE})
     public ApiResponse<List<AddressResponse>> replaceAddresses(@PathVariable Long personId,

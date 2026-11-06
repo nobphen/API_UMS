@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
+/** Makes the signed access and refresh tokens (JWT, issuer "ums") and keeps their lifetimes from application.yml. */
 @Service
 public class JwtServiceImpl implements JwtService {
 
@@ -27,6 +28,7 @@ public class JwtServiceImpl implements JwtService {
     @Getter
     private final Duration refreshTokenTtl;
 
+    /** Spring passes the encoder and the token lifetimes (ums.jwt.*) from application.yml. */
     public JwtServiceImpl(JwtEncoder jwtEncoder,
                           @Value("${ums.jwt.access-token-ttl}") Duration accessTokenTtl,
                           @Value("${ums.jwt.refresh-token-ttl}") Duration refreshTokenTtl) {
@@ -35,6 +37,7 @@ public class JwtServiceImpl implements JwtService {
         this.refreshTokenTtl = refreshTokenTtl;
     }
 
+    /** Signed JWT with the user id (sub), session id (sid), username, user type, permissions and language. */
     @Override
     public String generateAccessToken(User user, Long sessionId, Collection<String> authorities) {
         Instant now = Instant.now();
@@ -55,6 +58,7 @@ public class JwtServiceImpl implements JwtService {
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
+    /** Signed JWT with only the user id, session id and typ = refresh; no permissions inside. */
     @Override
     public String generateRefreshToken(Long userId, Long sessionId) {
         Instant now = Instant.now();

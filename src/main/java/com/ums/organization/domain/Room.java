@@ -36,5 +36,6 @@ public class Room extends SoftDeletableEntity {
     @Column(name = "room_type", nullable = false)
     private RoomType roomType;
 
+    /** What the room is used for. */
     public enum RoomType { LECTURE, LAB, HALL, EXAM }
 }

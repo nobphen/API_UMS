@@ -6,6 +6,7 @@ import com.ums.people.domain.Student;
 import java.time.LocalDate;
 import java.util.List;
 
+/** One student record with person details and addresses, sent back to the client. */
 public record StudentResponse(
         Long id,
         String studentCode,

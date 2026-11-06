@@ -8,6 +8,7 @@ import tools.jackson.databind.ValueSerializer;
 /** Writes a phone number for people to read: +855969530336 → 096 953 0336. Used through {@link PhoneDisplay}. */
 public class PhoneDisplaySerializer extends ValueSerializer<String> {
 
+    /** Writes the number formatted by {@link PhoneNumbers#format}. */
     @Override
     public void serialize(String value, JsonGenerator generator, SerializationContext context) {
         generator.writeString(PhoneNumbers.format(value));

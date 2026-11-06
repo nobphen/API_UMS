@@ -25,6 +25,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * The "Devices" screen: a user sees and ends their own logged-in devices; admins do the same for any user
+ * and see login statistics. Every endpoint needs the access token.
+ */
 @RestController
 @RequestMapping("/api/v1/user-sessions")
 @RequiredArgsConstructor
@@ -35,6 +39,12 @@ public class UserSessionController {
 
     /// MY DEVICES ---------------------------------------------------
 
+    /**
+     * My logged-in devices, last used first; "current" marks the device making this request.
+     * <pre>GET /api/v1/user-sessions/me
+     * → [{"id": 12, "deviceModel": "iPhone 15", "platform": "IOS", "city": "Phnom Penh",
+     *     "loginMethod": "PASSWORD", "lastActiveAt": "...", "current": true}, ...]</pre>
+     */
     @GetMapping("/me")
     public ApiResponse<List<UserSessionResponse>> mySessions(@AuthenticationPrincipal Jwt jwt) {
         Long currentSessionId = sessionId(jwt);
@@ -43,6 +53,10 @@ public class UserSessionController {
                 .toList());
     }
 
+    /**
+     * Logs out one of my devices; 404 when it is not mine or already ended. 204.
+     * <pre>DELETE /api/v1/user-sessions/me/12</pre>
+     */
     @DeleteMapping("/me/{sessionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void endMySession(@PathVariable Long sessionId, @AuthenticationPrincipal Jwt jwt) {
@@ -59,6 +73,11 @@ public class UserSessionController {
 
     /// ADMIN: another user's devices (e.g. a student reports a stolen phone) ------
 
+    /**
+     * Another user's logged-in devices, last used first. Needs USER_VIEW.
+     * <pre>GET /api/v1/user-sessions/users/42
+     * → [{"id": 12, "deviceModel": "Samsung A54", "platform": "ANDROID", ..., "current": false}, ...]</pre>
+     */
     @GetMapping("/users/{userId}")
     @RequirePermission(SecurityPermissions.USER_VIEW)
     public ApiResponse<List<UserSessionResponse>> userSessions(@PathVariable Long userId) {
@@ -67,6 +86,10 @@ public class UserSessionController {
                 .toList());
     }
 
+    /**
+     * Logs the user out of every device (reason ADMIN). Needs USER_LOCK. Returns how many were ended.
+     * <pre>POST /api/v1/user-sessions/users/42/terminate-all  → 3</pre>
+     */
     @PostMapping("/users/{userId}/terminate-all")
     @RequirePermission(SecurityPermissions.USER_LOCK)
     public ApiResponse<Integer> endAllUserSessions(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
@@ -100,10 +123,12 @@ public class UserSessionController {
         return ApiResponse.ok(userSessionService.loginStatsByUser(date));
     }
 
+    /** The user id from the token's subject ("sub"). */
     private static Long userId(Jwt jwt) {
         return Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
     }
 
+    /** The session id from the token's "sid" claim. */
     private static Long sessionId(Jwt jwt) {
         return Long.valueOf(Objects.requireNonNull(jwt.getClaimAsString("sid")));
     }

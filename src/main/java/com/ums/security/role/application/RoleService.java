@@ -14,12 +14,16 @@ import java.util.Set;
  */
 public interface RoleService {
 
+    /** All roles (not deleted), system roles first, each with its permission codes. */
     List<RoleResponse> list();
 
+    /** One role with its permissions; 404 when it does not exist or was deleted. */
     RoleResponse get(Long id);
 
+    /** Adds a role made by an admin, with the permissions the admin is allowed to give. */
     RoleResponse create(RoleRequest request, Set<String> callerAuthorities);
 
+    /** Changes a role's names, status and (when sent) permissions; the code never changes. */
     RoleResponse update(Long id, RoleUpdateRequest request, Set<String> callerAuthorities);
 
     /** Only roles admins made, and only when nobody holds them any more. */

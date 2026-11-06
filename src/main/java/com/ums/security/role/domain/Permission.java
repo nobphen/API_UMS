@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/** One thing a user may do (table permissions), e.g. STUDENT_VIEW. Seeded by SQL; admins put them into roles. */
 @Getter
 @Setter
 @Entity

@@ -32,6 +32,7 @@ public class SessionActivityFilter extends OncePerRequestFilter {
     private final UserSessionService userSessionService;
     private final JsonSecurityErrorHandler jsonSecurityErrorHandler;
 
+    /** steps: no JWT → passes on; refresh token → 401; revoked session → 401; temporary password and not an allowed URL → 403; else passes on. */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {

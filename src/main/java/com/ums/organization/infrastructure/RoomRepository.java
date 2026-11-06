@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
+/** Database access for rooms (table rooms). Spring Data writes the SQL from the method names. */
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
     /**

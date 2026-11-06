@@ -89,14 +89,24 @@ public class UserSession extends BaseEntity {
     @Column(name = "revoked_reason")
     private RevokedReason revokedReason;
 
+    /** True when the session is not ended and not expired yet. */
     public boolean isActive() {
         return revokedAt == null && expiresAt.isAfter(Instant.now());
     }
 
+    /** Where the user logged in from. */
     public enum Platform { WEB, ANDROID, IOS, DESKTOP }
 
+    /** How the user logged in: password, QR code scanned by the phone app, or SMS code (OTP). */
     public enum LoginMethod { PASSWORD, QR, OTP }
 
+    /**
+     * Why the session ended. LOGOUT = the user logged out; TERMINATED_BY_USER / TERMINATE_OTHERS = ended from the
+     * "Devices" screen; ADMIN = an admin ended it; USER_LOCKED = the account was locked or is no longer ACTIVE;
+     * PASSWORD_CHANGED = the password was changed or reset; INACTIVE / EXPIRED = the nightly cleanup job;
+     * TOKEN_REUSE = an old refresh token was used again; REPLACED = a new login on the same device.
+     * MAX_DEVICES is not used yet.
+     */
     public enum RevokedReason {
         LOGOUT, TERMINATED_BY_USER, TERMINATE_OTHERS, PASSWORD_CHANGED, ADMIN, USER_LOCKED,
         INACTIVE, EXPIRED, MAX_DEVICES, TOKEN_REUSE, REPLACED

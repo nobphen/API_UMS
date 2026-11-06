@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
+/** Database access for programs (table programs). Spring Data writes the SQL from the method names. */
 public interface ProgramRepository extends JpaRepository<Program, Long> {
 
     /**

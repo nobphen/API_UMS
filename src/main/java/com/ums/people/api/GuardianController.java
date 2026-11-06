@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Not written yet. Later: REST API for guardians (parents) and linking them to students. */
 @RestController
 @RequestMapping("/api/v1/guardians")
 @RequiredArgsConstructor

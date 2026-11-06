@@ -50,6 +50,7 @@ public record ApiResponse<T>(int status, boolean success, String message, T data
         return new ApiResponse<>(0, true, "success.ok", cursor, null);
     }
 
+    /** Any error (400, 401, 403, 404, 409, 500 ...); the status is set by the handler's ResponseEntity. */
     public static <T> ApiResponse<T> error(String message) {
         return new ApiResponse<>(0, false, message, null, null);
     }

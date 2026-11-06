@@ -3,8 +3,12 @@ package com.ums.people.infrastructure;
 import com.ums.people.domain.Student;
 import java.util.Collection;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+/** Database access for student records (table students). */
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
     /**
@@ -71,4 +75,59 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
      * @return true when at least one student record uses the program
      */
     boolean existsByProgramIdAndDeletedAtIsNull(Long programId);
+
+    /**
+     * Students for the list page, skipping deleted ones. Each filter that is null is not used.
+     * q filters by student code or name, English or Khmer (empty q = all).
+     * Sorting and page size come from the Pageable (?page=1&size=20&sort=studentCode,asc).
+     * The person is loaded in the same SELECT (join fetch), so reading the name needs no extra query.
+     * <pre>
+     * SELECT s.*, p.* FROM students s JOIN persons p ON p.id = s.person_id
+     * WHERE s.deleted_at IS NULL
+     *   AND (? IS NULL OR s.program_id = ?) AND (? IS NULL OR s.batch_id = ?)
+     *   AND (? IS NULL OR s.year_level = ?) AND (? IS NULL OR s.status = ?)
+     *   AND (LOWER(s.student_code) LIKE LOWER('%' || ? || '%') OR LOWER(p.first_name) LIKE ...
+     *        OR LOWER(p.last_name) LIKE ... OR p.first_name_kh LIKE ... OR p.last_name_kh LIKE ...)
+     * ORDER BY ... LIMIT ? OFFSET ?
+     * </pre>
+     * countQuery: the same WHERE with count(s), for the page totals (Spring can't build it by itself with join fetch).
+     *
+     * @param q         search text; "" = all
+     * @param programId program id, or null for all programs
+     * @param batchId   batch id, or null for all batches
+     * @param yearLevel year of study, or null for all years
+     * @param status    student status, or null for all
+     * @param pageable  page number, size and sort
+     * @return one page of students, with the totals
+     */
+    @Query(value = """
+            select s from Student s
+            join fetch s.person p
+            where s.deletedAt is null
+              and (:programId is null or s.programId = :programId)
+              and (:batchId is null or s.batchId = :batchId)
+              and (:yearLevel is null or s.yearLevel = :yearLevel)
+              and (:status is null or s.status = :status)
+              and (lower(s.studentCode) like lower(concat('%', :q, '%'))
+                   or lower(p.firstName) like lower(concat('%', :q, '%'))
+                   or lower(p.lastName) like lower(concat('%', :q, '%'))
+                   or p.firstNameKh like concat('%', :q, '%')
+                   or p.lastNameKh like concat('%', :q, '%'))
+            """,
+           countQuery = """
+            select count(s) from Student s
+            join s.person p
+            where s.deletedAt is null
+              and (:programId is null or s.programId = :programId)
+              and (:batchId is null or s.batchId = :batchId)
+              and (:yearLevel is null or s.yearLevel = :yearLevel)
+              and (:status is null or s.status = :status)
+              and (lower(s.studentCode) like lower(concat('%', :q, '%'))
+                   or lower(p.firstName) like lower(concat('%', :q, '%'))
+                   or lower(p.lastName) like lower(concat('%', :q, '%'))
+                   or p.firstNameKh like concat('%', :q, '%')
+                   or p.lastNameKh like concat('%', :q, '%'))
+            """)
+    Page<Student> search(String q, Long programId, Long batchId, Integer yearLevel,
+                         Student.Status status, Pageable pageable);
 }

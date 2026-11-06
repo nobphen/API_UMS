@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Makes document numbers from the document_sequences table, one row per prefix and year. */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class DocumentNumberServiceImpl implements DocumentNumberService {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /** This year (Cambodia time) + one SQL statement that adds 1 to the counter → e.g. INV-2026-00015. */
     @Override
     public String next(DocumentType type) {
         int year = Year.now(ZONE).getValue();

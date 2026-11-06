@@ -53,11 +53,13 @@ public class GlobalExceptionHandler {
 
     private final MessageSource messageSource;
 
+    /** The record does not exist (404), message translated from the exception's key. */
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(text(ex.getMessage(), ex.getArgs())));
     }
 
+    /** A business rule was broken (400), message translated from the exception's key. */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.error(text(ex.getMessage(), ex.getArgs())));
@@ -224,6 +226,7 @@ public class GlobalExceptionHandler {
         return messageSource.getMessage("field." + name, null, humanize(name), LocaleContextHolder.getLocale());
     }
 
+    /** Turns a Java name into words: studentCode → Student code, programId → Program ID. */
     private static String humanize(String name) {
         String words = name.replaceAll("Id$", " ID").replaceAll("([a-z0-9])([A-Z])", "$1 $2").toLowerCase();
         words = words.replace(" id", " ID");

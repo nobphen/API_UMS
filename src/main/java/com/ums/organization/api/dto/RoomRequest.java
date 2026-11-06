@@ -6,9 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+/** Body to create or update a room. */
 public record RoomRequest(
-        @NotNull Long buildingId,
-        @NotBlank @Size(max = 20) String code,
-        @NotNull @Positive Integer capacity,
+        @NotNull Long buildingId,                  // the building it is in
+        @NotBlank @Size(max = 20) String code,     // unique within the building
+        @NotNull @Positive Integer capacity,       // number of seats
         @NotNull Room.RoomType roomType) {
 }

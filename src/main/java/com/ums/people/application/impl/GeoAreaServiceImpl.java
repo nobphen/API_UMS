@@ -31,6 +31,7 @@ public class GeoAreaServiceImpl implements GeoAreaService {
     private final GeoAreaRepository geoAreaRepository;
     private final GeoAreaMapper geoAreaMapper;   // entity → response (MapStruct)
 
+    /** One dropdown: one query (findForList), ordered by English name, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public List<GeoAreaResponse> list(Long parentId, String q, boolean includeInactive) {
@@ -40,12 +41,14 @@ public class GeoAreaServiceImpl implements GeoAreaService {
                 .toList();
     }
 
+    /** One area by id, active or not; 404 when it does not exist. */
     @Override
     @Transactional(readOnly = true)
     public GeoAreaResponse get(Long id) {
         return geoAreaMapper.toResponse(find(id));
     }
 
+    /** The area and its parents, province first (each getParent() is one small SELECT). */
     @Override
     @Transactional(readOnly = true)
     public List<GeoAreaResponse> path(Long id) {
@@ -63,6 +66,7 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         return path;
     }
 
+    /** Adds an area after checking its parent, code length, code prefix and that the code is free. */
     @Override
     public GeoAreaResponse create(GeoAreaRequest request) {
 
@@ -112,6 +116,7 @@ public class GeoAreaServiceImpl implements GeoAreaService {
         return geoAreaMapper.toResponse(area);
     }
 
+    /** Changes only names, units and active; code, level and parent stay, so they are not checked again. */
     @Override
     public GeoAreaResponse update(Long id, GeoAreaUpdateRequest request) {
 

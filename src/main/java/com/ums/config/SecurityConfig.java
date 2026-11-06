@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/** Spring Security setup: which URLs need login, JWT checking, JSON 401/403 answers, no sessions. */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -54,6 +55,7 @@ public class SecurityConfig {
         return new JwtAuthenticationProvider(jwtDecoder);
     }
 
+    /// The security rules for every request: public and protected URLs, JWT check, JSON errors, CORS, no CSRF, stateless
     @Bean
     SecurityFilterChain configureApiSecurity(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
 

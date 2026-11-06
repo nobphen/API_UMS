@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Not written yet. Later: BatchService using BatchRepository. */
 @Service
 @Transactional
 @RequiredArgsConstructor

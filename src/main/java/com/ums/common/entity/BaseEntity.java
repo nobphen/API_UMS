@@ -7,6 +7,7 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
 
+/** Base of every entity: gives it an id that the database makes (identity column). */
 @Getter
 @Setter
 @MappedSuperclass

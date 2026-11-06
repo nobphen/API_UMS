@@ -1,5 +1,6 @@
 package com.ums.common.numbering;
 
+/** Gives out running numbers for documents (e.g. invoices), one counter per prefix and year. */
 public interface DocumentNumberService {
 
     /**

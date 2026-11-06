@@ -4,6 +4,7 @@ import com.ums.people.domain.Staff;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/** Database access for staff (table staff). */
 public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     /**

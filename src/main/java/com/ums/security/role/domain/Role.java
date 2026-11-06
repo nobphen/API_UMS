@@ -13,6 +13,10 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * A named set of permissions (table roles), e.g. REGISTRAR. Users get roles through user_roles.
+ * System roles come from the seed scripts and can't be deleted.
+ */
 @Getter
 @Setter
 @Auditable

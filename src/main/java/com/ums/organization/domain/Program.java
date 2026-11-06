@@ -50,5 +50,6 @@ public class Program extends SoftDeletableEntity {
     @Column(name = "status", nullable = false)
     private String status = "ACTIVE";
 
+    /** The kind of degree the program gives. */
     public enum DegreeLevel { FOUNDATION, CERTIFICATE, DIPLOMA, ASSOCIATE, BACHELOR, MASTER, PHD }
 }

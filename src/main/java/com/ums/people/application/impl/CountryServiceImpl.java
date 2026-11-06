@@ -23,6 +23,7 @@ public class CountryServiceImpl implements CountryService {
     private final CountryRepository countryRepository;
     private final CountryMapper countryMapper;   // entity → response (MapStruct)
 
+    /** Country dropdown: one query (findForList), Cambodia first, then each row → response. */
     @Override
     public List<CountryResponse> list(String q, boolean withNationality) {
         String search = q == null ? "" : q.trim();   // "" matches every name
@@ -31,6 +32,7 @@ public class CountryServiceImpl implements CountryService {
                 .toList();
     }
 
+    /** Checks a country code before it is saved (nationality or address); empty = KH. */
     @Override
     public Country require(String code) {
 

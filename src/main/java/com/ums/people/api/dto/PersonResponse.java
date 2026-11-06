@@ -5,6 +5,7 @@ import com.ums.people.domain.Person;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Person details with addresses sent back to the client. Not used yet. */
 public record PersonResponse(
         Long id,
         String firstName,

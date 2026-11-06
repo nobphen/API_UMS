@@ -17,6 +17,7 @@ public record PageResponse<T>(
         boolean first,
         boolean last) {
 
+    /** Copies a Spring Page into this record; adds 1 to the page number so it starts at 1. */
     public static <T> PageResponse<T> of(Page<T> page) {
         return new PageResponse<>(page.getContent(), page.getNumber() + 1, page.getSize(),
                 page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());

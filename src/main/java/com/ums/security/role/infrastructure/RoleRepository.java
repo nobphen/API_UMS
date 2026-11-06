@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/** Reads and saves the roles table. */
 public interface RoleRepository extends JpaRepository<Role, Long> {
 
     /**

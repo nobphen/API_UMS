@@ -8,6 +8,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Logged-in devices (Telegram style): each login opens a session that holds the refresh token hash.
+ * Ending a session logs that device out.
+ */
 public interface UserSessionService {
 
     /** Opens a session for a device; an active session on the same device is revoked as REPLACED. */
@@ -29,6 +33,7 @@ public interface UserSessionService {
     /** The user's logged-in devices, most recently used first. */
     List<UserSession> getActiveSessions(Long userId);
 
+    /** Ends one session (e.g. on logout); does nothing when it is already ended or does not exist. */
     void revoke(Long sessionId, UserSession.RevokedReason reason, Long revokedBy);
 
     /** The user ends one of their own sessions from the "Devices" screen. */

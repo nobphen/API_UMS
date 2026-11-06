@@ -34,6 +34,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     private final ProgramRepository programRepository;   // to check a department is empty before deleting it
     private final DepartmentMapper departmentMapper;     // request → entity → response (MapStruct)
 
+    /** New department: clean the code, check it is free and the faculty exists, then INSERT. */
     @Override
     public DepartmentResponse create(DepartmentRequest request) {
 
@@ -58,12 +59,14 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentMapper.toResponse(departmentRepository.save(department));
     }
 
+    /** One department by id; 404 when it does not exist or was deleted. */
     @Override
     @Transactional(readOnly = true)
     public DepartmentResponse get(Long id) {
         return departmentMapper.toResponse(findDepartment(id));
     }
 
+    /** One page: search by code or name, only one faculty when facultyId is sent, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public Page<DepartmentResponse> list(String search, Long facultyId, Pageable pageable) {
@@ -71,6 +74,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentRepository.search(q, facultyId, pageable).map(departmentMapper::toResponse);   // entity page → response page
     }
 
+    /** Check the department, its new code and faculty, copy the request onto it; JPA saves at commit. */
     @Override
     public DepartmentResponse update(Long id, DepartmentRequest request) {
 
@@ -96,6 +100,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentMapper.toResponse(department);
     }
 
+    /** Soft delete: refused while programs belong to the department, otherwise set deletedAt. */
     @Override
     public void delete(Long id) {
 

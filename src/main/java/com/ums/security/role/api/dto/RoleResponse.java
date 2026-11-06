@@ -2,6 +2,7 @@ package com.ums.security.role.api.dto;
 
 import java.util.List;
 
+/** One role as the admin screens show it: names, status, permission codes and how many users hold it. */
 public record RoleResponse(
         Long id,
         String code,

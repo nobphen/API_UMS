@@ -50,6 +50,7 @@ public class GeoArea extends AuditableEntity {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    /** The 4 levels, from top to bottom. The order matters: parentLevel() uses it. */
     public enum Level {
         PROVINCE, DISTRICT, COMMUNE, VILLAGE;
 

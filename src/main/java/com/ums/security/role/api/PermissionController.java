@@ -19,6 +19,12 @@ public class PermissionController {
 
     private final PermissionService permissionService;
 
+    /**
+     * Every permission, sorted by module then code, for the "Edit role" screen. Needs ROLE_VIEW.
+     * <pre>GET /api/v1/permissions
+     * → [{"id": 1, "code": "STUDENT_VIEW", "module": "STUDENT", "action": "VIEW",
+     *     "description": "...", "descriptionKh": "..."}, ...]</pre>
+     */
     @GetMapping
     @RequirePermission(SecurityPermissions.ROLE_VIEW)
     public ApiResponse<List<PermissionResponse>> list() {

@@ -2,6 +2,7 @@ package com.ums.people.api.dto;
 
 import com.ums.people.domain.GeoArea;
 
+/** One province, district, commune or village sent back to the client. parentId is null for a province. */
 public record GeoAreaResponse(
         Long id,
         String code,

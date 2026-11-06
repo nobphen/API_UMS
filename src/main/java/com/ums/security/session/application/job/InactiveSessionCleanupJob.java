@@ -14,6 +14,7 @@ public class InactiveSessionCleanupJob {
 
     private final UserSessionService userSessionService;
 
+    /** steps: ends expired and long-unused sessions (default 03:00 every night, ums.session.cleanup-cron) → logs the count. */
     @Scheduled(cron = "${ums.session.cleanup-cron:0 0 3 * * *}")
     public void run() {
         int ended = userSessionService.revokeExpiredAndInactive();

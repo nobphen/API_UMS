@@ -11,6 +11,7 @@ public final class PeoplePermissions {
     public static final String GUARDIAN_MANAGE = "GUARDIAN_MANAGE";
     public static final String GEO_AREA_MANAGE = "GEO_AREA_MANAGE";
 
+    /** Only constants here: no objects. */
     private PeoplePermissions() {
     }
 }

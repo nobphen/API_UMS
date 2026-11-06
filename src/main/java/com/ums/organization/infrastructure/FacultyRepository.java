@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+/** Database access for faculties (table faculties). Spring Data writes the SQL from the method names. */
 public interface FacultyRepository extends JpaRepository<Faculty, Long> {
 
     /**
@@ -47,6 +48,10 @@ public interface FacultyRepository extends JpaRepository<Faculty, Long> {
     /**
      * Faculties for the list page, skipping deleted ones; q filters by code, English or Khmer name
      * (empty q = all). Sorting and page size come from the Pageable (?page=1&size=20&sort=name,asc).
+     *
+     * @param q        search text; "" = all
+     * @param pageable page number, size and sort
+     * @return one page of faculties, with the totals
      */
     @Query("""
             select f from Faculty f

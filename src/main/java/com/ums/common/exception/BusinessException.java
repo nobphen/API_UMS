@@ -9,11 +9,16 @@ public class BusinessException extends RuntimeException {
 
     private final transient Object[] args;
 
+    /**
+     * @param messageKey the i18n key, e.g. error.student.code_exists
+     * @param args       values put into the message's {0}, {1}, ...
+     */
     public BusinessException(String messageKey, Object... args) {
         super(messageKey);
         this.args = args;
     }
 
+    /** The values for the message's {0}, {1}, ... */
     public Object[] getArgs() {
         return args;
     }

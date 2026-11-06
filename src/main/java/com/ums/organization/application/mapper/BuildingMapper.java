@@ -7,6 +7,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
+/** MapStruct mapper (code made at build time): building request / entity / response. */
 @Mapper(componentModel = "spring")
 public interface BuildingMapper {
 

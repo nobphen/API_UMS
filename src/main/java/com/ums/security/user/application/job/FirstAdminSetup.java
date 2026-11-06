@@ -34,6 +34,7 @@ public class FirstAdminSetup implements ApplicationRunner {
     private final String password;
     private final String email;
 
+    /** Spring passes the beans and the ums.first-admin.* settings (empty when not set). */
     public FirstAdminSetup(UserRepository userRepository, UserRoleRepository userRoleRepository,
                            RoleRepository roleRepository, PasswordEncoder passwordEncoder,
                            @Value("${ums.first-admin.username:}") String username,
@@ -48,6 +49,7 @@ public class FirstAdminSetup implements ApplicationRunner {
         this.email = email.trim();
     }
 
+    /** steps: a SUPER_ADMIN exists → nothing; no settings → warning only; checks password length and username → saves the ADMIN user + SUPER_ADMIN role. */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {

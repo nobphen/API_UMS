@@ -29,11 +29,13 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     private final MessageSource messageSource;
 
+    /** Runs for every response; {@link #beforeBodyWrite} itself skips bodies that are not ApiResponse. */
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         return true;
     }
 
+    /** steps: leaves non-ApiResponse bodies alone → reads the real HTTP status → translates the message if it is a key → returns the filled answer. */
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType contentType,
                                   Class<? extends HttpMessageConverter<?>> converterType,

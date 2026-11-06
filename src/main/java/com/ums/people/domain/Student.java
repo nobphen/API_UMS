@@ -16,6 +16,7 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
+/** One student record: one person in one program (table students). Soft deleted; changes are audited. */
 @Getter
 @Setter
 @Auditable
@@ -58,6 +59,7 @@ public class Student extends SoftDeletableEntity {
     @Column(name = "status", nullable = false)
     private Status status = Status.ACTIVE;
 
+    /** Where the student is in this program. ACTIVE when added. */
     public enum Status {
         ACTIVE, SUSPENDED, ON_LEAVE, GRADUATED, DROPPED;
 

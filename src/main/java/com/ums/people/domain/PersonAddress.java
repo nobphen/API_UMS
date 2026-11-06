@@ -59,5 +59,6 @@ public class PersonAddress extends AuditableEntity {
     @Column(name = "address_line")
     private String addressLine;
 
+    /** Which address it is. A person has at most one of each type. */
     public enum Type { BIRTH_PLACE, PERMANENT, CURRENT }
 }

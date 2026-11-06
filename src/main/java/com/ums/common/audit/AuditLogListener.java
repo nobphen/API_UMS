@@ -63,6 +63,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         log.debug("[audit] register(): done, listening for POST_INSERT, POST_UPDATE, POST_DELETE");
     }
 
+    /** steps: skips entities without @Auditable → sends a CREATE event with all simple fields as newValue. */
     @Override
     public void onPostInsert(PostInsertEvent event) {
         log.debug("[audit] onPostInsert(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
@@ -71,6 +72,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         publish(Action.CREATE, event.getEntity(), event.getId(), null, toJson(names, event.getState(), null));
     }
 
+    /** steps: skips entities without @Auditable → keeps only the changed simple fields → sends an UPDATE event (old and new values); skips when no simple field changed. */
     @Override
     public void onPostUpdate(PostUpdateEvent event) {
         log.debug("[audit] onPostUpdate(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
@@ -86,6 +88,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         publish(Action.UPDATE, event.getEntity(), event.getId(), oldValue, newValue);
     }
 
+    /** steps: skips entities without @Auditable → sends a DELETE event with the deleted row's simple fields as oldValue. */
     @Override
     public void onPostDelete(PostDeleteEvent event) {
         log.debug("[audit] onPostDelete(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
@@ -103,12 +106,14 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         return false;
     }
 
+    /** True when the entity class has the {@link Auditable} annotation. */
     private static boolean isAuditable(Object entity) {
         boolean auditable = entity.getClass().isAnnotationPresent(Auditable.class);
         log.debug("[audit] isAuditable(): {} -> {}", entity.getClass().getSimpleName(), auditable);
         return auditable;
     }
 
+    /** steps: finds the entity id, current user id and client IP → sends an {@link EntityChangedEvent}. */
     private void publish(Action action, Object entity, Object id, String oldValue, String newValue) {
         Long entityId = id instanceof Number n ? n.longValue() : null;
         Long userId = auditorAware.getCurrentAuditor().orElse(null);
@@ -134,6 +139,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         return json;
     }
 
+    /** steps: skips hidden names (password, token, ...) → keeps the value only if it is simple (text, number, boolean, enum, date, UUID). */
     private static void addField(Map<String, Object> fields, String name, Object value) {
         if (HIDDEN.contains(name.toLowerCase())) {
             log.debug("[audit] addField(): {} hidden, skip", name);

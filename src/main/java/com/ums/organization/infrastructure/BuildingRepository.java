@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
+/** Database access for buildings (table buildings). Spring Data writes the SQL from the method names. */
 public interface BuildingRepository extends JpaRepository<Building, Long> {
 
     /**

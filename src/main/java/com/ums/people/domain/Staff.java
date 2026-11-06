@@ -63,5 +63,6 @@ public class Staff extends SoftDeletableEntity {
     /** What the person does; what they may do in the system comes from their roles. */
     public enum StaffType { LECTURER, OFFICE, BOTH }
 
+    /** Job status: ACTIVE when hired; the others mean the person is not working now. */
     public enum Status { ACTIVE, ON_LEAVE, RESIGNED, TERMINATED, RETIRED }
 }

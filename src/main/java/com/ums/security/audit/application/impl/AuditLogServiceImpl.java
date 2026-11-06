@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+/** Listens for EntityChangedEvent and saves each change as an audit_logs row. */
 @Service
 @Transactional
 @RequiredArgsConstructor

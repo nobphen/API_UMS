@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** Body of POST /auth/password/change: the current password, and the new one typed twice (8-72 chars, letters and digits). */
 public record ChangePasswordRequest(
         @NotBlank
         String currentPassword,

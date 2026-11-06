@@ -27,6 +27,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Sessions in the database (one row per logged-in device) plus a Redis key per ended session,
+ * so access tokens of an ended session are refused at once.
+ */
 @Service
 @Transactional
 public class UserSessionServiceImpl implements UserSessionService {
@@ -41,6 +45,7 @@ public class UserSessionServiceImpl implements UserSessionService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final Duration accessTokenTtl;
 
+    /** Written by hand (no @RequiredArgsConstructor) because accessTokenTtl comes from application.yml. */
     public UserSessionServiceImpl(UserSessionRepository userSessionRepository,
                                   RedisTemplate<String, Object> redisTemplate,
                                   @Value("${ums.jwt.access-token-ttl}") Duration accessTokenTtl) {
@@ -49,6 +54,7 @@ public class UserSessionServiceImpl implements UserSessionService {
         this.accessTokenTtl = accessTokenTtl;
     }
 
+    /** Ends the old session of the same device (REPLACED), then INSERTs a new one with the device info and expiry. */
     @Override
     public UserSession create(Long userId, DeviceInfo device, String ipAddress, String userAgent,
                               UserSession.LoginMethod loginMethod, boolean rememberMe, Duration ttl) {
@@ -80,6 +86,7 @@ public class UserSessionServiceImpl implements UserSessionService {
         return userSessionRepository.save(session);
     }
 
+    /** Saves only the SHA-256 hash of the token (never the token), and moves lastActiveAt and expiresAt forward. */
     @Override
     public void updateRefreshToken(UserSession session, String refreshToken, Duration ttl) {
         Instant now = Instant.now();
@@ -88,6 +95,10 @@ public class UserSessionServiceImpl implements UserSessionService {
         session.setExpiresAt(now.plus(ttl));
     }
 
+    /**
+     * Compares the hash of the sent token with the saved hash. A different hash = an old token used again,
+     * so the session is ended (noRollbackFor keeps that change even though an error is thrown).
+     */
     @Override
     @Transactional(noRollbackFor = AuthenticationException.class)
     public UserSession getActiveSession(Long sessionId, String refreshToken) {
@@ -103,6 +114,7 @@ public class UserSessionServiceImpl implements UserSessionService {
         return session;
     }
 
+    /** The session by id, only when not revoked and not expired; otherwise 401. */
     @Override
     @Transactional(readOnly = true)
     public UserSession getActiveSession(Long sessionId) {
@@ -111,6 +123,7 @@ public class UserSessionServiceImpl implements UserSessionService {
                 .orElseThrow(() -> new BadCredentialsException("auth.session_ended"));
     }
 
+    /** One query: the user's sessions not revoked and not expired yet, last used first. */
     @Override
     @Transactional(readOnly = true)
     public List<UserSession> getActiveSessions(Long userId) {
@@ -118,6 +131,7 @@ public class UserSessionServiceImpl implements UserSessionService {
                 userId, Instant.now());
     }
 
+    /** Finds the session and ends it only if it is not ended yet. */
     @Override
     public void revoke(Long sessionId, UserSession.RevokedReason reason, Long revokedBy) {
         userSessionRepository.findById(sessionId)
@@ -125,16 +139,19 @@ public class UserSessionServiceImpl implements UserSessionService {
                 .ifPresent(s -> markRevoked(s, reason, revokedBy));
     }
 
+    /** The session must be the user's own and active (404 otherwise); ended as TERMINATED_BY_USER. */
     @Override
     public void revokeOwn(Long userId, Long sessionId) {
         markRevoked(activeSessionOf(userId, sessionId), UserSession.RevokedReason.TERMINATED_BY_USER, userId);
     }
 
+    /** The session must belong to that user and be active (404 otherwise); ended as ADMIN, by adminId. */
     @Override
     public void revokeByAdmin(Long userId, Long sessionId, Long adminId) {
         markRevoked(activeSessionOf(userId, sessionId), UserSession.RevokedReason.ADMIN, adminId);
     }
 
+    /** Loads the user's open sessions, skips keepSessionId, ends the rest, returns the count. */
     @Override
     public int revokeAll(Long userId, UserSession.RevokedReason reason, Long revokedBy, Long keepSessionId) {
         List<UserSession> sessions = userSessionRepository.findByUserIdAndRevokedAtIsNull(userId).stream()
@@ -144,18 +161,21 @@ public class UserSessionServiceImpl implements UserSessionService {
         return sessions.size();
     }
 
+    /** Two bulk UPDATE queries (expired, then unused too long); returns how many rows were ended. */
     @Override
     public int revokeExpiredAndInactive() {
         // No Redis entry needed: these sessions have not refreshed for a long time, so their access tokens are already dead
         return userSessionRepository.revokeExpired() + userSessionRepository.revokeInactive();
     }
 
+    /** Fast check on every request: is the key "session:revoked:{id}" in Redis? (No database call.) */
     @Override
     @Transactional(readOnly = true)
     public boolean isRevoked(Long sessionId) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(REVOKED_KEY + sessionId));
     }
 
+    /** Fills the missing dates (default: the last 7 days), checks the range (max 366 days), then one GROUP BY day query. */
     @Override
     @Transactional(readOnly = true)
     public List<LoginStatsResponse> loginStats(LocalDate from, LocalDate to) {
@@ -172,6 +192,7 @@ public class UserSessionServiceImpl implements UserSessionService {
                 .toList();
     }
 
+    /** The day from 00:00 to 24:00 Cambodia time, then one GROUP BY user query for that time range. */
     @Override
     @Transactional(readOnly = true)
     public List<UserLoginStatsResponse> loginStatsByUser(LocalDate date) {
@@ -191,6 +212,7 @@ public class UserSessionServiceImpl implements UserSessionService {
                 .orElseThrow(() -> new NotFoundException("error.session.not_found"));
     }
 
+    /** Sets revokedAt, reason and who, and writes the Redis key so the session's access tokens stop working at once. */
     private void markRevoked(UserSession session, UserSession.RevokedReason reason, Long revokedBy) {
         session.setRevokedAt(Instant.now());
         session.setRevokedReason(reason);
@@ -199,6 +221,7 @@ public class UserSessionServiceImpl implements UserSessionService {
         redisTemplate.opsForValue().set(REVOKED_KEY + session.getId(), reason.name(), accessTokenTtl);
     }
 
+    /** SHA-256 of the token as hex text: the database never holds a usable refresh token. */
     private static String hash(String token) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));

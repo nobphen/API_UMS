@@ -3,6 +3,7 @@ package com.ums.people.infrastructure;
 import com.ums.people.domain.Batch;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/** Database access for batches (table batches). */
 public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     /**

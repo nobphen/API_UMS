@@ -10,6 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+/**
+ * QR login: the web page shows a QR code, the logged-in mobile app approves it, then the web page gets tokens.
+ * The QR state (PENDING or APPROVED:userId) lives in Redis for 2 minutes.
+ */
 @Service
 @RequiredArgsConstructor
 public class QrLoginServiceImpl implements QrLoginService {
@@ -21,6 +25,7 @@ public class QrLoginServiceImpl implements QrLoginService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    /** Saves a random qrId in Redis as PENDING for 2 minutes and returns it for the QR image. */
     @Override
     public QrLoginResponse create() {
         String qrId = UUID.randomUUID().toString();
@@ -28,6 +33,7 @@ public class QrLoginServiceImpl implements QrLoginService {
         return new QrLoginResponse(qrId, TTL.toSeconds());
     }
 
+    /** Only a PENDING code can be approved: it becomes APPROVED:userId and keeps its remaining time. */
     @Override
     public void approve(String qrId, Long userId) {
         String key = KEY + qrId;
@@ -39,6 +45,7 @@ public class QrLoginServiceImpl implements QrLoginService {
         redisTemplate.opsForValue().set(key, APPROVED + userId, ttl);
     }
 
+    /** Called by the web page again and again: empty while PENDING; once APPROVED, deletes the code and gives the user id. */
     @Override
     public Optional<Long> consumeApproved(String qrId) {
         String key = KEY + qrId;

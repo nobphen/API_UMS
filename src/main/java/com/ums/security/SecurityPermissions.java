@@ -11,6 +11,7 @@ public final class SecurityPermissions {
     public static final String ROLE_MANAGE = "ROLE_MANAGE";
     public static final String AUDIT_VIEW = "AUDIT_VIEW";
 
+    /** Only constants here; no objects needed. */
     private SecurityPermissions() {
     }
 }

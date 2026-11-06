@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Keeps each user's roles and permissions in Redis (key auth:authorities:userId, 1 hour), so a request does not read the database. */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
     private final UserRoleRepository userRoleRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
+    /** Reads the permissions from Redis; when the cache is empty, loads them from the database (reload). */
     @Override
     public Set<String> getAuthorities(Long userId) {
         Set<Object> cached = redisTemplate.opsForSet().members(KEY + userId);
@@ -31,6 +33,7 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
         return reload(userId);
     }
 
+    /** Active roles (as ROLE_xxx) + their permissions from the database, saved again in Redis for 1 hour. */
     @Override
     public Set<String> reload(Long userId) {
         Set<String> authorities = new LinkedHashSet<>();
@@ -46,6 +49,7 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
         return authorities;
     }
 
+    /** Deletes the user's cached permissions, so the next request reads them fresh (after a role change). */
     @Override
     public void evict(Long userId) {
         redisTemplate.delete(KEY + userId);

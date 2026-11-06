@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/** A building on campus; it holds rooms. The code is unique. */
 @Getter
 @Setter
 @Auditable

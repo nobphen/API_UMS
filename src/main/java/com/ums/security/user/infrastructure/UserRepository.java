@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+/** Database access for the users table (login accounts): find for login, and "is it taken?" checks. */
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
@@ -75,6 +76,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return true when the email is taken
      */
     boolean existsByEmailIgnoreCase(String email);
+
+    /**
+     * Whether ANOTHER user already has this email, ignoring case (for a change of email).
+     * <pre>
+     * SELECT u.id FROM users u WHERE upper(u.email) = upper(?) AND u.id <> ? FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param email email to check
+     * @param id    the user who is changing it (not counted)
+     * @return true when someone else has it
+     */
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+
+    /**
+     * Whether ANOTHER user already has this phone number (for a change of phone).
+     * <pre>
+     * SELECT u.id FROM users u WHERE u.phone = ? AND u.id <> ? FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param phone normalized phone number, e.g. +85512345678
+     * @param id    the user who is changing it (not counted)
+     * @return true when someone else has it
+     */
+    boolean existsByPhoneAndIdNot(String phone, Long id);
 
     /**
      * The user with this email, ignoring case, for the email verification after sign-up.

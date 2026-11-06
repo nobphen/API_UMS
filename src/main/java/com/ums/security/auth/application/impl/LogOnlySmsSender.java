@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class LogOnlySmsSender implements SmsSender {
 
+    /** Sends nothing: only writes a warning to the log with the phone number (the text is not logged). */
     @Override
     public void send(String phone, String text) {
         log.warn("SMS to {} not sent: no SMS gateway configured (replace LogOnlySmsSender)", phone);

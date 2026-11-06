@@ -1,25 +1,24 @@
 package com.ums.security.auth.application.impl;
 
 import com.ums.common.exception.BusinessException;
+import com.ums.common.mail.MailService;
 import com.ums.security.auth.application.EmailVerificationService;
 import com.ums.security.user.domain.User;
 import com.ums.security.user.infrastructure.UserRepository;
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.Locale;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * The 6-digit email code that turns a PENDING sign-up into an ACTIVE account.
+ * Only a BCrypt hash of the code is kept, in Redis, with a time limit and a limit on wrong tries.
+ */
 @Slf4j
 @Service
 public class EmailVerificationServiceImpl implements EmailVerificationService {
@@ -33,34 +32,30 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ObjectProvider<JavaMailSender> mailSender;   // only exists when spring.mail.host is set
-    private final MessageSource messageSource;
+    private final MailService mailService;
     private final Duration codeTtl;
     private final int maxAttempts;
-    private final String mailFrom;
     private final boolean logCode;
 
+    /** Spring passes the beans and the ums.email-verify.* settings from application.yml. */
     public EmailVerificationServiceImpl(UserRepository userRepository,
                                         PasswordEncoder passwordEncoder,
                                         RedisTemplate<String, Object> redisTemplate,
-                                        ObjectProvider<JavaMailSender> mailSender,
-                                        MessageSource messageSource,
+                                        MailService mailService,
                                         @Value("${ums.email-verify.code-ttl}") Duration codeTtl,
                                         @Value("${ums.email-verify.max-attempts}") int maxAttempts,
-                                        @Value("${ums.email-verify.mail-from}") String mailFrom,
                                         @Value("${ums.email-verify.log-code:false}") boolean logCode) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.redisTemplate = redisTemplate;
-        this.mailSender = mailSender;
-        this.messageSource = messageSource;
+        this.mailService = mailService;
         this.codeTtl = codeTtl;
         this.maxAttempts = maxAttempts;
-        this.mailFrom = mailFrom;
         this.logCode = logCode;
     }
 
     /// SEND CODE ----------------------------------------------------
+    /** Makes a 6-digit code, keeps only its hash in Redis (with a time limit) and emails it; at most one per minute. */
     @Override
     public void sendCode(User user) {
         String codeKey = CODE_KEY + user.getId();
@@ -77,6 +72,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         deliver(user, code);
     }
 
+    /** Sends a new code only to a PENDING account; for any other email it does nothing (no hint who exists). */
     @Override
     @Transactional(readOnly = true)
     public void resendCode(String email) {
@@ -84,6 +80,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     /// VERIFY -------------------------------------------------------
+    /** Compares the code with the hash in Redis (limited tries); right code = account ACTIVE and the code is deleted. */
     @Override
     @Transactional
     public void verify(String email, String code) {
@@ -120,26 +117,12 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
                 .filter(u -> u.getStatus() == User.Status.PENDING);
     }
 
+    /** Emails the code (HTML, in the user's saved language) through MailService; no mail server = only a warning. */
     private void deliver(User user, String code) {
         if (logCode) {
             log.info("Email verification code for {}: {}", user.getUsername(), code);
         }
-        JavaMailSender sender = mailSender.getIfAvailable();
-        if (sender == null) {
-            log.warn("Verification code for user {} not sent: no mail server configured (spring.mail.host)", user.getId());
-            return;
-        }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
         // The user is not in the app when this arrives, so it uses their saved language, not the request's
-        Locale locale = Locale.forLanguageTag(user.getPreferredLanguage());
-        message.setSubject(messageSource.getMessage("mail.email_verify.subject", null, locale));
-        message.setText(messageSource.getMessage("mail.email_verify.body", new Object[] {code, codeTtl.toMinutes()}, locale));
-        try {
-            sender.send(message);
-        } catch (MailException ex) {
-            log.error("Could not send verification email to user {}", user.getId(), ex);
-        }
+        mailService.sendCode(user.getEmail(), user.getPreferredLanguage(), "email_verify", code, codeTtl.toMinutes());
     }
 }

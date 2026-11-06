@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Not written yet. Later: REST API for batches (student groups of a program, by start year). */
 @RestController
 @RequestMapping("/api/v1/batches")
 @RequiredArgsConstructor

@@ -25,11 +25,13 @@ import com.ums.security.user.domain.User;
 import com.ums.security.user.domain.UserRole;
 import com.ums.security.user.infrastructure.UserRepository;
 import com.ums.security.user.infrastructure.UserRoleRepository;
+
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -46,6 +48,10 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Sign-up, every kind of login (password, SMS code, QR), token refresh, logout and change password.
+ * Each login opens a user_sessions row and gives an access + refresh token for it.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -67,6 +73,9 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
 
     /// REGISTER -----------------------------------------------------
+    /**
+     * New applicant account: checks password, username, email and phone are free, saves the user with the APPLICANT role.
+     */
     @Override
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -110,6 +119,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// LOGIN --------------------------------------------------------
+    /**
+     * Spring checks the password; a wrong one adds 1 to the failed count, a right one resets it and opens a session.
+     */
     @Override
     @Transactional(noRollbackFor = AuthenticationException.class)   // keep the failed-login count on a wrong password
     public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
@@ -144,6 +156,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// OTP LOGIN ----------------------------------------------------
+    /**
+     * Checks the SMS code, then the account must be ACTIVE; opens a session like a password login.
+     */
     @Override
     @Transactional
     public TokenResponse loginWithOtp(OtpLoginRequest request, String ipAddress, String userAgent) {
@@ -161,6 +176,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// REFRESH ------------------------------------------------------
+    /**
+     * Checks the refresh token and its session, then gives a new access and refresh token (rotation).
+     */
     @Override
     @Transactional(noRollbackFor = AuthenticationException.class)   // keep the TOKEN_REUSE revoke
     public TokenResponse refresh(RefreshTokenRequest request) {
@@ -185,6 +203,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// LOGOUT -------------------------------------------------------
+    /**
+     * Revokes only the session of this token (this device); other devices stay logged in.
+     */
     @Override
     @Transactional
     public void logout(Jwt accessToken) {
@@ -194,6 +215,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// QR LOGIN -----------------------------------------------------
+    /**
+     * Empty while the QR is not approved yet; once approved (single use), opens a session for that user.
+     */
     @Override
     @Transactional
     public Optional<TokenResponse> loginWithQr(String qrId, DeviceInfo device, String ipAddress, String userAgent) {
@@ -210,6 +234,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// CHANGE PASSWORD ----------------------------------------------
+    /**
+     * Checks the current password, saves the new one, logs out every other device and gives new tokens.
+     */
     @Override
     @Transactional
     public TokenResponse changePassword(Jwt accessToken, ChangePasswordRequest request) {
@@ -239,6 +266,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /// HELPERS ------------------------------------------------------
+    /**
+     * Saves a new session (device, IP, login method), then makes its tokens.
+     */
     private TokenResponse openSession(User user, Set<String> authorities, DeviceInfo device, String ipAddress,
                                       String userAgent, UserSession.LoginMethod method, boolean rememberMe) {
 
@@ -247,6 +277,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(user, session, authorities);
     }
 
+    /**
+     * Makes the access and refresh token for the session and stores the refresh token (hashed) on it.
+     */
     private TokenResponse issueTokens(User user, UserSession session, Set<String> authorities) {
 
         String accessToken = jwtService.generateAccessToken(user, session.getId(), authorities);
@@ -259,6 +292,9 @@ public class AuthServiceImpl implements AuthService {
                 user.isMustChangePassword());
     }
 
+    /**
+     * Adds 1 to the failed-login count; at MAX_FAILED_LOGINS the account is LOCKED. Unknown login: nothing.
+     */
     private void recordFailedLogin(String login) {
         userRepository.findByLogin(login).ifPresent(user -> {
             user.setFailedLoginCount(user.getFailedLoginCount() + 1);

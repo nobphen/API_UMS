@@ -40,6 +40,7 @@ public class RoomServiceImpl implements RoomService {
     private final AssetRepository assetRepository;                   // delete check: projectors, tables … in the room
     private final RoomMapper roomMapper;                             // request → entity → response (MapStruct)
 
+    /** New room: clean the code, check it is free in its building and the building exists, then INSERT. */
     @Override
     public RoomResponse create(RoomRequest request) {
 
@@ -66,6 +67,7 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(roomRepository.save(room));
     }
 
+    /** One room by id; 404 when it does not exist or was deleted. */
     @Override
 
     @Transactional(readOnly = true)
@@ -73,6 +75,7 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(findRoom(id));
     }
 
+    /** One page: search by code, filter by building and room type when sent, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public Page<RoomResponse> list(String search, Long buildingId, Room.RoomType roomType, Pageable pageable) {
@@ -82,6 +85,7 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.search(q, buildingId, roomType, pageable).map(roomMapper::toResponse);   // entity page → response page
     }
 
+    /** Check the room, its new code (inside the building) and the building, copy the request onto it; JPA saves at commit. */
     @Override
     public RoomResponse update(Long id, RoomRequest request) {
 
@@ -108,6 +112,7 @@ public class RoomServiceImpl implements RoomService {
         return roomMapper.toResponse(room);
     }
 
+    /** Soft delete: refused while classes, exams or assets use the room, otherwise set deletedAt. */
     @Override
     public void delete(Long id) {
 

@@ -26,6 +26,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Login accounts made by staff (not sign-up): new accounts with a temporary password, contact changes,
+ * password reset, lock / unlock, language, and the roles of a user.
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -49,22 +53,35 @@ public class UserServiceImpl implements UserService {
     private final PermissionCacheService permissionCacheService;
     private final UserMapper userMapper;
 
+    /**
+     * Username, email and phone must be free → random temporary password (saved only as a hash)
+     * → INSERT the user (mustChangePassword = true) → give the role.
+     */
     @Override
     public NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode) {
-        String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();
+
+        // 1. The username must be free (for a student it is the student code)
+        String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();   // "" → null, "A@B.com" → "a@b.com"
         if (userRepository.existsByUsernameIgnoreCase(username)) {
             throw new BusinessException("error.user.username_taken", username);
         }
+
+        // 2. The email must be free: it is used for "Forgot password?" and can be typed to log in
         if (normalizedEmail != null && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new BusinessException("error.user.email_taken");
         }
+
+        // 3. The phone must be free too
         String normalizedPhone = PhoneNumbers.normalizeForSave(phone);   // the phone is also a login name
         if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
             throw new BusinessException("error.user.phone_taken");
         }
+
+        // 4. The role (STUDENT, LECTURER ...) comes from the seed data; missing = a setup mistake, not a user mistake
         Role role = roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
 
+        // 5. INSERT the user with a random temporary password; only its hash is saved, never the password itself
         String temporaryPassword = temporaryPassword();
         User user = new User();
         user.setUsername(username);
@@ -72,41 +89,95 @@ public class UserServiceImpl implements UserService {
         user.setPhone(normalizedPhone);
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setUserType(userType);
-        user.setMustChangePassword(true);
-        userRepository.save(user);
+        user.setMustChangePassword(true);   // the first login asks for a new password
+        userRepository.save(user);          // after save() the user has its id
 
+        // 6. Give the role: one user_roles row (user ↔ role)
         UserRole userRole = new UserRole();
         userRole.setUser(user);
         userRole.setRole(role);
         userRoleRepository.save(userRole);
 
+        // 7. Answer with the plain temporary password: this is the only time anyone can see it
         return new NewAccount(user.getId(), user.getUsername(), temporaryPassword);
     }
 
+    /** Refuses a LOCKED login, switches it ACTIVE, adds the STUDENT role if missing (and clears its permission cache). */
     @Override
     public String useForNewStudy(Long userId) {
+
+        // 1. The login must exist (404) and not be locked by an admin
         User user = getUser(userId);
         if (user.getStatus() == User.Status.LOCKED) {
             throw new BusinessException("error.user.locked_unlock_first");
         }
+
+        // 2. Switch it on again and set its type
         user.setStatus(User.Status.ACTIVE);   // DISABLED after graduating → in use again
         // Only an applicant turns into a student. A lecturer or guardian who studies keeps their main type;
         // the STUDENT role below gives them the student permissions as well.
         if (user.getUserType() == User.UserType.APPLICANT) {
             user.setUserType(User.UserType.STUDENT);
         }
+        // 3. Add the STUDENT role, only if the user does not have it yet
         Role studentRole = roleRepository.findByCode(STUDENT_ROLE)
                 .orElseThrow(() -> new IllegalStateException("Role STUDENT is missing; check V3__seed_roles_and_admin.sql"));
+
         if (!userRoleRepository.existsByUser_IdAndRole_Id(userId, studentRole.getId())) {
             UserRole userRole = new UserRole();
             userRole.setUser(user);
             userRole.setRole(studentRole);
             userRoleRepository.save(userRole);
-            permissionCacheService.evict(userId);
+            permissionCacheService.evict(userId);   // forget the old permissions, so the student ones work at once
         }
+
+        // 4. Same login as before: answer with its username (no new password)
         return user.getUsername();
     }
 
+    /** Same email / phone rules as createAccount, but the user's own current values don't count as taken. */
+    @Override
+    public void updateContact(Long userId, String email, String phone) {
+        User user = getUser(userId);   // 404 when it does not exist
+
+        // 1. Email: "" → null, "A@B.com" → "a@b.com"; nobody else may have it
+        String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();
+        if (normalizedEmail != null && userRepository.existsByEmailIgnoreCaseAndIdNot(normalizedEmail, userId)) {
+            throw new BusinessException("error.user.email_taken");
+        }
+
+        // 2. Phone: saved as +855...; nobody else may have it
+        String normalizedPhone = PhoneNumbers.normalizeForSave(phone);
+        if (normalizedPhone != null && userRepository.existsByPhoneAndIdNot(normalizedPhone, userId)) {
+            throw new BusinessException("error.user.phone_taken");
+        }
+
+        // 3. No save(): the user was loaded in this transaction, so JPA writes the UPDATE at commit
+        user.setEmail(normalizedEmail);
+        user.setPhone(normalizedPhone);
+    }
+
+    /** Username is not oldUsername → nothing; otherwise the new one must be free (unless only the letter case changes) → set it. */
+    @Override
+    public boolean renameIfUsername(Long userId, String oldUsername, String newUsername) {
+        User user = getUser(userId);   // 404 when it does not exist
+
+        // 1. Only a login still named after the old code (a lecturer keeps their own username)
+        if (!user.getUsername().equalsIgnoreCase(oldUsername)) {
+            return false;
+        }
+
+        // 2. Nobody else may have the new username ("st2026001" → "ST2026001" is the same login, no check)
+        if (!newUsername.equalsIgnoreCase(user.getUsername()) && userRepository.existsByUsernameIgnoreCase(newUsername)) {
+            throw new BusinessException("error.user.username_taken", newUsername);
+        }
+
+        // 3. No save(): JPA writes the UPDATE at commit. Old tokens keep working; the next login uses the new username
+        user.setUsername(newUsername);
+        return true;
+    }
+
+    /** New temporary password (hash saved, must change at login), wrong-password count back to 0, all sessions ended. */
     @Override
     public String resetPassword(Long userId, Long adminId) {
         User user = getUser(userId);
@@ -118,6 +189,7 @@ public class UserServiceImpl implements UserService {
         return temporaryPassword;
     }
 
+    /** An admin can't lock themselves; status → LOCKED and every session ends as USER_LOCKED. */
     @Override
     public void lock(Long userId, Long adminId) {
         if (userId.equals(adminId)) {
@@ -128,6 +200,7 @@ public class UserServiceImpl implements UserService {
         userSessionService.revokeAll(userId, UserSession.RevokedReason.USER_LOCKED, adminId, null);
     }
 
+    /** LOCKED → ACTIVE (other statuses stay) and the wrong-password count back to 0. */
     @Override
     public void unlock(Long userId) {
         User user = getUser(userId);
@@ -137,6 +210,7 @@ public class UserServiceImpl implements UserService {
         user.setFailedLoginCount(0);
     }
 
+    /** Loads the user and sets the language; JPA writes the UPDATE at commit. */
     @Override
     public void setPreferredLanguage(Long userId, String language) {
         getUser(userId).setPreferredLanguage(language);
@@ -144,6 +218,7 @@ public class UserServiceImpl implements UserService {
 
     /// ROLES OF A USER ----------------------------------------------
 
+    /** Checks the user exists (404), then reads their user_roles rows, oldest first. */
     @Override
     @Transactional(readOnly = true)
     public List<UserRoleResponse> getRoles(Long userId) {
@@ -153,6 +228,10 @@ public class UserServiceImpl implements UserService {
                 .toList();
     }
 
+    /**
+     * Caller may give the role → role is ACTIVE → scope fits (GLOBAL has no scopeId, others need one)
+     * → dates in order → not given twice → INSERT, then clear the user's permission cache.
+     */
     @Override
     public UserRoleResponse assignRole(Long userId, UserRoleRequest request, Set<String> callerAuthorities) {
         User user = getUser(userId);
@@ -186,6 +265,7 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponse(userRole);
     }
 
+    /** The row must belong to this user (404) → caller may take the role away → not the last SUPER_ADMIN → DELETE. */
     @Override
     public void removeRole(Long userId, Long userRoleId, Set<String> callerAuthorities) {
         UserRole userRole = userRoleRepository.findById(userRoleId)
@@ -200,6 +280,7 @@ public class UserServiceImpl implements UserService {
         permissionCacheService.evict(userId);
     }
 
+    /** The user, or 404 when it does not exist. */
     private User getUser(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("error.user.not_found"));
     }

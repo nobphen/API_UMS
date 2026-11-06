@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.modulith.NamedInterface;
 
+/** A login account (table users). Students, staff, guardians, applicants and admins all log in with one of these. */
 @Getter
 @Setter
 @Auditable
@@ -60,6 +61,7 @@ public class User extends AuditableEntity {
     @Column(name = "preferred_language", nullable = false)
     private String preferredLanguage = "en";
 
+    /** What kind of person owns the account. */
     public enum UserType { STUDENT, STAFF, GUARDIAN, APPLICANT, ADMIN }
 
     /** PENDING: signed up, email not verified yet, can't log in. */

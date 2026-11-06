@@ -8,6 +8,7 @@ public final class OrganizationPermissions {
     public static final String PROGRAM_MANAGE = "PROGRAM_MANAGE";
     public static final String ROOM_MANAGE = "ROOM_MANAGE";
 
+    /** Only constants; no objects. */
     private OrganizationPermissions() {
     }
 }

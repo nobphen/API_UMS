@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 @Component("auditorAware")
 public class AuditorAwareImpl implements AuditorAware<Long> {
 
+    /** steps: reads the current login → returns the JWT subject as the user id, or empty when not logged in with a JWT. */
     @Override
     public Optional<Long> getCurrentAuditor() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

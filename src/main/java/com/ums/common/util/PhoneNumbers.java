@@ -13,6 +13,7 @@ public final class PhoneNumbers {
     private static final Pattern E164 = Pattern.compile("^\\+[1-9]\\d{7,14}$");
     private static final Pattern SEPARATORS = Pattern.compile("[\\s\\-.()]");
 
+    /** Only static helpers; no objects. */
     private PhoneNumbers() {
     }
 

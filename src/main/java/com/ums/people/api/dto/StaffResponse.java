@@ -5,6 +5,7 @@ import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import java.time.LocalDate;
 
+/** A staff member (person details + job details) sent back to the client. userId is null when there is no login. Not used yet. */
 public record StaffResponse(
         Long id,
         String staffCode,

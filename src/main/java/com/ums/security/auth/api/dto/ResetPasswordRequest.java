@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** Body of POST /auth/password/reset: the account, the 6-digit emailed code, and the new password typed twice. */
 public record ResetPasswordRequest(
         @NotBlank
         String username,   // same value as sent to /password/forgot

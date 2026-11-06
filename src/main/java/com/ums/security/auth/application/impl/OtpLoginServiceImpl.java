@@ -18,6 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Login with a 6-digit SMS code instead of a password. Only a BCrypt hash of the code is kept, in Redis,
+ * with a time limit and a limit on wrong tries.
+ */
 @Slf4j
 @Service
 public class OtpLoginServiceImpl implements OtpLoginService {
@@ -37,6 +41,7 @@ public class OtpLoginServiceImpl implements OtpLoginService {
     private final int maxAttempts;
     private final boolean logCode;
 
+    /** Spring passes the beans and the ums.otp.* settings from application.yml. */
     public OtpLoginServiceImpl(UserRepository userRepository,
                                PasswordEncoder passwordEncoder,
                                RedisTemplate<String, Object> redisTemplate,
@@ -56,6 +61,7 @@ public class OtpLoginServiceImpl implements OtpLoginService {
     }
 
     /// SEND CODE ----------------------------------------------------
+    /** Makes a 6-digit code, keeps only its hash in Redis and sends it by SMS; at most one per minute. Unknown phone: nothing. */
     @Override
     @Transactional(readOnly = true)
     public void sendCode(String phone) {
@@ -79,6 +85,7 @@ public class OtpLoginServiceImpl implements OtpLoginService {
     }
 
     /// VERIFY CODE --------------------------------------------------
+    /** Compares the code with the hash in Redis (limited tries); a right code works only once and gives the user id. */
     @Override
     public Long verifyCode(String phone, String code) {
         User user = findUser(phone).orElseThrow(() -> new BusinessException(INVALID_CODE));
@@ -119,6 +126,7 @@ public class OtpLoginServiceImpl implements OtpLoginService {
         return userRepository.findByPhone(normalized).filter(u -> u.getStatus() == User.Status.ACTIVE);
     }
 
+    /** Sends the SMS in the user's saved language; a send error is only logged, so the request does not fail. */
     private void deliver(User user, String code) {
         if (logCode) {
             log.info("Login code for {}: {}", user.getUsername(), code);

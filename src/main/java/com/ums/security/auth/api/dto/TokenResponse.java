@@ -1,5 +1,6 @@
 package com.ums.security.auth.api.dto;
 
+/** Tokens given after a login, refresh or password change; tokenType is always "Bearer". */
 public record TokenResponse(
         String accessToken,
         String refreshToken,

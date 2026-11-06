@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+/** Body of POST /auth/verify-email: the sign-up email and the 6-digit code sent to it. */
 public record VerifyEmailRequest(
         @NotBlank @Email
         String email,   // same email as sent to /register

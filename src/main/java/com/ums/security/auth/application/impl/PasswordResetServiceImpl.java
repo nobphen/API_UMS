@@ -1,6 +1,7 @@
 package com.ums.security.auth.application.impl;
 
 import com.ums.common.exception.BusinessException;
+import com.ums.common.mail.MailService;
 import com.ums.security.auth.api.dto.ForgotPasswordRequest;
 import com.ums.security.auth.api.dto.ResetPasswordRequest;
 import com.ums.security.auth.application.PasswordResetService;
@@ -11,20 +12,18 @@ import com.ums.security.user.infrastructure.UserRepository;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Locale;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Forgot password: emails a 6-digit code, then sets a new password with that code.
+ * Only a BCrypt hash of the code is kept, in Redis, with a time limit and a limit on wrong tries.
+ */
 @Slf4j
 @Service
 public class PasswordResetServiceImpl implements PasswordResetService {
@@ -39,36 +38,32 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final UserSessionService userSessionService;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ObjectProvider<JavaMailSender> mailSender;   // only exists when spring.mail.host is set
-    private final MessageSource messageSource;
+    private final MailService mailService;
     private final Duration codeTtl;
     private final int maxAttempts;
-    private final String mailFrom;
     private final boolean logCode;
 
+    /** Spring passes the beans and the ums.password-reset.* settings from application.yml. */
     public PasswordResetServiceImpl(UserRepository userRepository,
                                     PasswordEncoder passwordEncoder,
                                     UserSessionService userSessionService,
                                     RedisTemplate<String, Object> redisTemplate,
-                                    ObjectProvider<JavaMailSender> mailSender,
-                                    MessageSource messageSource,
+                                    MailService mailService,
                                     @Value("${ums.password-reset.code-ttl}") Duration codeTtl,
                                     @Value("${ums.password-reset.max-attempts}") int maxAttempts,
-                                    @Value("${ums.password-reset.mail-from}") String mailFrom,
                                     @Value("${ums.password-reset.log-code:false}") boolean logCode) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userSessionService = userSessionService;
         this.redisTemplate = redisTemplate;
-        this.mailSender = mailSender;
-        this.messageSource = messageSource;
+        this.mailService = mailService;
         this.codeTtl = codeTtl;
         this.maxAttempts = maxAttempts;
-        this.mailFrom = mailFrom;
         this.logCode = logCode;
     }
 
     /// SEND CODE ----------------------------------------------------
+    /** Makes a 6-digit code, keeps only its hash in Redis and emails it; at most one per minute. Unknown account: nothing. */
     @Override
     @Transactional(readOnly = true)
     public void sendResetCode(ForgotPasswordRequest request) {
@@ -92,6 +87,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
     /// RESET --------------------------------------------------------
+    /** Checks the code (limited tries), saves the new password, unlocks a LOCKED account and logs out every device. */
     @Override
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
@@ -138,6 +134,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .filter(u -> u.getStatus() != User.Status.DISABLED);
     }
 
+    /** Emails the code (HTML, in the user's saved language) through MailService; no email = only a warning in the log. */
     private void deliver(User user, String code) {
         if (logCode) {
             log.info("Password reset code for {}: {}", user.getUsername(), code);
@@ -146,22 +143,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             log.warn("Password reset asked for user {}, but the account has no email", user.getId());
             return;
         }
-        JavaMailSender sender = mailSender.getIfAvailable();
-        if (sender == null) {
-            log.warn("Password reset code for user {} not sent: no mail server configured (spring.mail.host)", user.getId());
-            return;
-        }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
         // The user is not in the app when this arrives, so it uses their saved language, not the request's
-        Locale locale = Locale.forLanguageTag(user.getPreferredLanguage());
-        message.setSubject(messageSource.getMessage("mail.password_reset.subject", null, locale));
-        message.setText(messageSource.getMessage("mail.password_reset.body", new Object[] {code, codeTtl.toMinutes()}, locale));
-        try {
-            sender.send(message);
-        } catch (MailException ex) {
-            log.error("Could not send password reset email to user {}", user.getId(), ex);
-        }
+        mailService.sendCode(user.getEmail(), user.getPreferredLanguage(), "password_reset", code, codeTtl.toMinutes());
     }
 }

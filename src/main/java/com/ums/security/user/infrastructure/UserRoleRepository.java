@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+/** Database access for the user_roles table: which roles each user has, and the permissions they give. */
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     /**
@@ -70,11 +71,31 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      */
     long countByRole_Code(String roleCode);
 
-    /** Users whose cached permissions must be dropped when the role changes. */
+    /**
+     * Users whose cached permissions must be dropped when the role changes.
+     * <pre>
+     * SELECT DISTINCT ur.user_id FROM user_roles ur WHERE ur.role_id = ?
+     * </pre>
+     *
+     * @param roleId id of the role that changed
+     * @return ids of the users who have it
+     */
     @Query("select distinct ur.user.id from UserRole ur where ur.role.id = :roleId")
     List<Long> findUserIdsByRoleId(Long roleId);
 
-    /** Codes of the user's active roles whose validity period includes today. */
+    /**
+     * Codes of the user's active roles whose validity period includes today (they become ROLE_* authorities).
+     * <pre>
+     * SELECT DISTINCT r.code FROM user_roles ur
+     * JOIN roles r ON r.id = ur.role_id
+     * WHERE ur.user_id = ? AND r.status = 'ACTIVE'
+     *   AND (ur.valid_from IS NULL OR ur.valid_from &lt;= current_date)
+     *   AND (ur.valid_to IS NULL OR ur.valid_to &gt;= current_date)
+     * </pre>
+     *
+     * @param userId id of the user
+     * @return role codes, e.g. STUDENT, DEAN
+     */
     @Query("""
             select distinct r.code from UserRole ur join ur.role r
             where ur.user.id = :userId and r.status = 'ACTIVE'
@@ -83,7 +104,21 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
             """)
     List<String> findActiveRoleCodes(Long userId);
 
-    /** Permission codes granted by those same roles. */
+    /**
+     * Permission codes granted by those same roles (active, valid today).
+     * <pre>
+     * SELECT DISTINCT p.code FROM user_roles ur
+     * JOIN roles r ON r.id = ur.role_id
+     * JOIN role_permissions rp ON rp.role_id = r.id
+     * JOIN permissions p ON p.id = rp.permission_id
+     * WHERE ur.user_id = ? AND r.status = 'ACTIVE'
+     *   AND (ur.valid_from IS NULL OR ur.valid_from &lt;= current_date)
+     *   AND (ur.valid_to IS NULL OR ur.valid_to &gt;= current_date)
+     * </pre>
+     *
+     * @param userId id of the user
+     * @return permission codes, e.g. STUDENT_VIEW
+     */
     @Query("""
             select distinct p.code from UserRole ur join ur.role r join r.permissions p
             where ur.user.id = :userId and r.status = 'ACTIVE'

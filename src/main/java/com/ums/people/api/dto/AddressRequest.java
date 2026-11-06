@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.modulith.NamedInterface;
 
 /**
- * One address. In Cambodia (countryCode KH, the default) send areaId, the smallest area chosen (usually the
- * village); the server fills the commune, district and province. Abroad send countryCode and addressLine instead.
+ * One address. In Cambodia (countryCode KH, the default) send areaId = the village (another level gives
+ * error.address.village_required); the server fills the commune, district and province. Abroad send countryCode and addressLine instead.
  */
 @NamedInterface("address-request")   // used by other modules
 public record AddressRequest(

@@ -31,6 +31,7 @@ public class BuildingServiceImpl implements BuildingService {
     private final RoomRepository roomRepository;   // to check a building is empty before deleting it
     private final BuildingMapper buildingMapper;   // request → entity → response (MapStruct)
 
+    /** New building: clean the code, check it is free, then INSERT. */
     @Override
     public BuildingResponse create(BuildingRequest request) {
 
@@ -51,12 +52,14 @@ public class BuildingServiceImpl implements BuildingService {
         return buildingMapper.toResponse(buildingRepository.save(building));
     }
 
+    /** One building by id; 404 when it does not exist or was deleted. */
     @Override
     @Transactional(readOnly = true)
     public BuildingResponse get(Long id) {
         return buildingMapper.toResponse(findBuilding(id));
     }
 
+    /** One page: search by code or name, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public Page<BuildingResponse> list(String search, Pageable pageable) {
@@ -64,6 +67,7 @@ public class BuildingServiceImpl implements BuildingService {
         return buildingRepository.search(q, pageable).map(buildingMapper::toResponse);   // entity page → response page
     }
 
+    /** Check the building and its new code, copy the request onto it; JPA saves at commit. */
     @Override
     public BuildingResponse update(Long id, BuildingRequest request) {
 
@@ -85,6 +89,7 @@ public class BuildingServiceImpl implements BuildingService {
         return buildingMapper.toResponse(building);
     }
 
+    /** Soft delete: refused while rooms are in the building, otherwise set deletedAt. */
     @Override
     public void delete(Long id) {
 

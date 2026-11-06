@@ -58,6 +58,7 @@ public class Person extends SoftDeletableEntity {
     @Column(name = "photo_url")
     private String photoUrl;
 
+    /** Gender of the person. */
     public enum Gender { MALE, FEMALE, OTHER }
 
     /**

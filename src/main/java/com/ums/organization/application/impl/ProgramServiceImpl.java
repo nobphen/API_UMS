@@ -46,6 +46,7 @@ public class ProgramServiceImpl implements ProgramService {
     private final ApplicationRepository applicationRepository;
     private final FeeStructureRepository feeStructureRepository;
 
+    /** New program: clean the code, check it is free and the department exists, then INSERT (status empty = ACTIVE). */
     @Override
     public ProgramResponse create(ProgramRequest request) {
         // 1. Same code style for everyone: " bcs " → "BCS"
@@ -70,6 +71,7 @@ public class ProgramServiceImpl implements ProgramService {
         return programMapper.toResponse(programRepository.save(program));
     }
 
+    /** One program by id; 404 when it does not exist or was deleted. */
     @Override
     @Transactional(readOnly = true)
     public ProgramResponse get(Long id) {
@@ -77,6 +79,7 @@ public class ProgramServiceImpl implements ProgramService {
         return programMapper.toResponse(findProgram(id));
     }
 
+    /** One page: search by code or name, only one department when departmentId is sent, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public Page<ProgramResponse> list(String search, Long departmentId, Pageable pageable) {
@@ -85,6 +88,7 @@ public class ProgramServiceImpl implements ProgramService {
         return programRepository.search(q, departmentId, pageable).map(programMapper::toResponse);
     }
 
+    /** Check the program, its new code and department, copy the request onto it; JPA saves at commit. */
     @Override
     public ProgramResponse update(Long id, ProgramRequest request) {
         // 1. The program must exist and not be deleted → error.program.not_found
@@ -110,6 +114,7 @@ public class ProgramServiceImpl implements ProgramService {
         return programMapper.toResponse(program);
     }
 
+    /** Soft delete: refused while any table still uses the program (see isInUse), otherwise set deletedAt. */
     @Override
     public void delete(Long id) {
         // 1. The program must exist and not be deleted already

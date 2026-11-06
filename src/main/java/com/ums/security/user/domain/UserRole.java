@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 
+/** One role given to one user (table user_roles), optionally limited to a scope and to a date range. */
 @Getter
 @Setter
 @Auditable

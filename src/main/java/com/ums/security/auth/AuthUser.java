@@ -19,11 +19,13 @@ public class AuthUser implements UserDetails {
     private final User.Status status;
     private final Collection<? extends GrantedAuthority> authorities;
 
+    /** False for a LOCKED account (too many wrong passwords), so Spring refuses the login. */
     @Override
     public boolean isAccountNonLocked() {
         return status != User.Status.LOCKED;
     }
 
+    /** False for a DISABLED or PENDING account, so Spring refuses the login. */
     @Override
     public boolean isEnabled() {
         return status != User.Status.DISABLED && status != User.Status.PENDING;   // PENDING: email not verified yet

@@ -21,6 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PermissionCacheService permissionCacheService;
 
+    /** Called by Spring Security at login: finds the user by username, email or phone and loads their permissions. */
     @Override
     public AuthUser loadUserByUsername(String login) throws UsernameNotFoundException {
         User user = userRepository.findByLogin(login)

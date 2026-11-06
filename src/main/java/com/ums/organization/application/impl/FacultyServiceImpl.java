@@ -30,6 +30,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final DepartmentRepository departmentRepository;   // to check a faculty is empty before deleting it
     private final FacultyMapper facultyMapper;                 // request → entity → response (MapStruct)
 
+    /** New faculty: clean the code, check it is free, then INSERT. */
     @Override
     public FacultyResponse create(FacultyRequest request) {
 
@@ -50,12 +51,14 @@ public class FacultyServiceImpl implements FacultyService {
         return facultyMapper.toResponse(facultyRepository.save(faculty));
     }
 
+    /** One faculty by id; 404 when it does not exist or was deleted. */
     @Override
     @Transactional(readOnly = true)
     public FacultyResponse get(Long id) {
         return facultyMapper.toResponse(findFaculty(id));
     }
 
+    /** One page: search by code or name, then each row → response. */
     @Override
     @Transactional(readOnly = true)
     public Page<FacultyResponse> list(String search, Pageable pageable) {
@@ -63,6 +66,7 @@ public class FacultyServiceImpl implements FacultyService {
         return facultyRepository.search(q, pageable).map(facultyMapper::toResponse);   // entity page → response page
     }
 
+    /** Check the faculty and its new code, copy the request onto it; JPA saves at commit. */
     @Override
     public FacultyResponse update(Long id, FacultyRequest request) {
 
@@ -84,6 +88,7 @@ public class FacultyServiceImpl implements FacultyService {
         return facultyMapper.toResponse(faculty);
     }
 
+    /** Soft delete: refused while departments use the faculty, otherwise set deletedAt. */
     @Override
     public void delete(Long id) {
 

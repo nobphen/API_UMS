@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+/** Reads and updates the user_sessions table: the "Devices" list, the cleanup job and the login statistics. */
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
     /**

@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/** A faculty of the university, e.g. Faculty of Engineering; it has departments. The code is unique. */
 @Getter
 @Setter
 @Auditable

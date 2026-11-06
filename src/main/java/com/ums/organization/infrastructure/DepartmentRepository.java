@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
+/** Database access for departments (table departments). Spring Data writes the SQL from the method names. */
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
     /**

@@ -19,5 +19,6 @@ public record EntityChangedEvent(
         String newValue,
         String ipAddress) {
 
+    /** What happened to the entity. */
     public enum Action { CREATE, UPDATE, DELETE }
 }

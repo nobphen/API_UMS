@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Links a student to a guardian (parent), with the relationship and whether this guardian is contacted first. */
 @Getter
 @Setter
 @Entity
@@ -29,6 +30,7 @@ public class StudentGuardian {
     @Column(name = "is_primary", nullable = false)
     private boolean primary;
 
+    /** The key: student id + guardian id (one row per student-guardian pair). */
     @Getter
     @Setter
     @NoArgsConstructor

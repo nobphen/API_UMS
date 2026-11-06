@@ -4,6 +4,7 @@ import com.ums.people.domain.PersonAddress;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/** Database access for the addresses of a person (table person_addresses). */
 public interface PersonAddressRepository extends JpaRepository<PersonAddress, Long> {
 
     /**

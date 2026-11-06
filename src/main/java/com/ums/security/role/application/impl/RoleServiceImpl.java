@@ -22,6 +22,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Role add / change / delete, with the rule that an admin can't give permissions they don't hold.
+ * After a change it clears the permission cache of every holder.
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class RoleServiceImpl implements RoleService {
     private final PermissionCacheService permissionCacheService;
     private final RoleMapper roleMapper;
 
+    /** One query, system roles first then by name; each role → response with its holder count. */
     @Override
     @Transactional(readOnly = true)
     public List<RoleResponse> list() {
@@ -44,12 +49,14 @@ public class RoleServiceImpl implements RoleService {
                 .toList();
     }
 
+    /** One role by id (404 when missing) → response. */
     @Override
     @Transactional(readOnly = true)
     public RoleResponse get(Long id) {
         return toResponse(findRole(id));
     }
 
+    /** Code must be free → permission codes must exist → caller must hold them all → INSERT. */
     @Override
     public RoleResponse create(RoleRequest request, Set<String> callerAuthorities) {
         if (roleRepository.existsByCodeIgnoreCase(request.code())) {
@@ -69,6 +76,10 @@ public class RoleServiceImpl implements RoleService {
         return toResponse(role);
     }
 
+    /**
+     * Replaces the permissions (only the added ones are checked against the caller), changes status and names,
+     * then clears the permission cache of every holder. SUPER_ADMIN's permissions and status can't change.
+     */
     @Override
     public RoleResponse update(Long id, RoleUpdateRequest request, Set<String> callerAuthorities) {
         Role role = findRole(id);
@@ -101,6 +112,7 @@ public class RoleServiceImpl implements RoleService {
         return toResponse(role);
     }
 
+    /** Refuses a system role or a role someone still holds; otherwise deletes it. */
     @Override
     public void delete(Long id) {
         Role role = findRole(id);
@@ -114,6 +126,7 @@ public class RoleServiceImpl implements RoleService {
         roleRepository.delete(role);
     }
 
+    /** Finds the role by code (404), then: SUPER_ADMIN needs a SUPER_ADMIN caller, others need all their permissions. */
     @Override
     @Transactional(readOnly = true)
     public Role requireGivable(String roleCode, Set<String> callerAuthorities) {
@@ -131,14 +144,17 @@ public class RoleServiceImpl implements RoleService {
 
     /// HELPERS ------------------------------------------------------
 
+    /** The role, or 404 when it does not exist. */
     private Role findRole(Long id) {
         return roleRepository.findById(id).orElseThrow(() -> new NotFoundException("error.role.not_found"));
     }
 
+    /** Role → response, with how many users hold it. */
     private RoleResponse toResponse(Role role) {
         return roleMapper.toResponse(role, userRoleRepository.countByRole_Id(role.getId()));
     }
 
+    /** The permissions with these codes; 400 listing every unknown code. Empty or null = no permissions. */
     private Set<Permission> findPermissions(Set<String> codes) {
         if (codes == null || codes.isEmpty()) {
             return new HashSet<>();

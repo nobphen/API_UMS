@@ -63,10 +63,11 @@ ums:
       bucket: ${MINIO_BUCKET:ums}
   session:
     cleanup-cron: "0 0 3 * * *"
+  mail:
+    from: ${MAIL_FROM:no-reply@ums.local}   # sender address of every email (MailService)
   password-reset:
     code-ttl: 10m
     max-attempts: 5
-    mail-from: ${MAIL_FROM:no-reply@ums.local}
     log-code: false   # dev only: write the code to the log when no mail server is set up
   otp:                # login with a code sent by SMS (/api/v1/auth/otp/*)
     code-ttl: 5m
@@ -75,5 +76,4 @@ ums:
   email-verify:       # applicants verify their email after sign-up (/api/v1/auth/verify-email)
     code-ttl: 15m
     max-attempts: 5
-    mail-from: ${MAIL_FROM:no-reply@ums.local}
     log-code: false   # dev only: write the code to the log when no mail server is set up
