@@ -27,6 +27,18 @@ public interface UserService {
     NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode);
 
     /**
+     * Only the checks of createAccount, saves nothing. Call it before saving anything else (person, addresses ...),
+     * so a taken username, email or phone stops the request before any INSERT (no lost ids).
+     *
+     * @param username e.g. the student code ST2026001
+     * @param email    optional; must be free when given
+     * @param phone    optional, as typed; must be free when given
+     * @throws com.ums.common.exception.BusinessException error.user.username_taken / email_taken / phone_taken;
+     *                                                    error.phone.invalid
+     */
+    void checkNewAccount(String username, String email, String phone);
+
+    /**
      * An existing login starts another program (e.g. a Bachelor graduate begins a Master's, or a lecturer studies
      * a PhD): it gets the STUDENT role, and is switched back on if it was disabled after graduating. An APPLICANT
      * login becomes a STUDENT login; staff and guardians keep their type.

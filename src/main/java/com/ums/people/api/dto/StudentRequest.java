@@ -2,6 +2,7 @@ package com.ums.people.api.dto;
 
 import com.ums.people.domain.Person;
 import jakarta.validation.Valid;
+import com.ums.common.util.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -34,7 +35,7 @@ public record StudentRequest(
         @Pattern(regexp = "^[A-Z]{2}$", message = "{validation.country_code}") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
-        @Email @Size(max = 150) String email,   // needed for "Forgot password?"
+        @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150) String email,   // needed for "Forgot password?"
         @Valid List<AddressRequest> addresses,   // birth place, permanent and current address
 
         @NotNull Long programId,

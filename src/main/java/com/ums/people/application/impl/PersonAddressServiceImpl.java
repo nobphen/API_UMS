@@ -63,15 +63,7 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         }
 
         // 1. Check and build every new row first, so one bad address saves nothing
-        Set<PersonAddress.Type> seen = EnumSet.noneOf(PersonAddress.Type.class);
-        List<PersonAddress> rows = new ArrayList<>();
-
-        for (AddressRequest request : addresses) {
-            if (!seen.add(request.type())) {   // add() is false when the type is already in the set
-                throw new BusinessException("error.address.duplicate_type", new DefaultMessageSourceResolvable("address.type." + request.type()));
-            }
-            rows.add(toEntity(person, request));
-        }
+        List<PersonAddress> rows = build(person, addresses);
 
         // 2. DELETE the old rows, then INSERT the new ones
         personAddressRepository.deleteAll(personAddressRepository.findByPerson_IdOrderByTypeAsc(person.getId()));
@@ -87,7 +79,29 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         return getByPerson(personId);
     }
 
+    /** The same checks as replaceAll, without a person and without saving: lets a new person be checked before any INSERT. */
+    @Override
+    public void check(List<AddressRequest> addresses) {
+        if (addresses != null) {
+            build(null, addresses);   // throws on the first bad address; the rows are thrown away
+        }
+    }
+
     /// HELPERS ------------------------------------------------------
+
+    /** Every request → one row after its checks; a type sent twice is refused. Saves nothing. */
+    private List<PersonAddress> build(Person person, List<AddressRequest> addresses) {
+        Set<PersonAddress.Type> seen = EnumSet.noneOf(PersonAddress.Type.class);
+        List<PersonAddress> rows = new ArrayList<>();
+
+        for (AddressRequest request : addresses) {
+            if (!seen.add(request.type())) {   // add() is false when the type is already in the set
+                throw new BusinessException("error.address.duplicate_type", new DefaultMessageSourceResolvable("address.type." + request.type()));
+            }
+            rows.add(toEntity(person, request));
+        }
+        return rows;
+    }
 
     /**
      * One request → one address row, after its checks:

@@ -33,6 +33,16 @@ public interface PersonAddressService {
     void replaceAll(Person person, List<AddressRequest> addresses);
 
     /**
+     * Only the checks of replaceAll, saves nothing. Call it before saving a new person, so a bad address
+     * stops the request before any INSERT (no lost ids).
+     *
+     * @param addresses the addresses to check; null = nothing to check
+     * @throws com.ums.common.exception.BusinessException the same errors as replaceAll
+     * @throws com.ums.common.exception.NotFoundException error.geo.not_found for an unknown areaId
+     */
+    void check(List<AddressRequest> addresses);
+
+    /**
      * Same, for the persons endpoint: finds the person first and answers with the saved addresses.
      *
      * @param personId  id in persons

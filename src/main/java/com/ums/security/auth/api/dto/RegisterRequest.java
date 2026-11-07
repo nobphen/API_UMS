@@ -1,5 +1,6 @@
 package com.ums.security.auth.api.dto;
 
+import com.ums.common.util.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -12,7 +13,7 @@ public record RegisterRequest(
         @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{validation.username_chars}")
         String username,
 
-        @NotBlank @Email @Size(max = 150)
+        @NotBlank @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150)
         String email,
 
         @Size(max = 30)

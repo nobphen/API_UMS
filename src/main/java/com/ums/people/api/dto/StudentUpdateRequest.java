@@ -1,6 +1,7 @@
 package com.ums.people.api.dto;
 
 import com.ums.people.domain.Person;
+import com.ums.common.util.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -22,7 +23,7 @@ public record StudentUpdateRequest(
         @Pattern(regexp = "^[A-Z]{2}$", message = "{validation.country_code}") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
-        @Email @Size(max = 150) String email,
+        @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150) String email,
         String photoUrl,
 
         Long batchId,

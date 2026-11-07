@@ -20,15 +20,19 @@ public interface StudentService {
     /**
      * Adds the student and their login account (username = student code, temporary password).
      * With existingUserId, the existing login and person are reused instead and no password is made.
+     * Everything is checked before the first INSERT, so a wrong form saves nothing.
      *
      * @param request person details, addresses, student code, program, batch, admission date
      * @return the student, the username and the temporary password (null for an existing login)
      * @throws com.ums.common.exception.BusinessException error.student.code_exists when the code is taken;
      *                                                    error.student.already_in_program (existing login);
+     *                                                    error.student.batch_not_in_program for a wrong batch;
      *                                                    error.country.unknown for a bad nationality;
-     *                                                    error.user.email_taken / phone_taken for the login;
+     *                                                    error.person.national_id_* for a bad or taken national ID;
+     *                                                    error.user.username_taken / email_taken / phone_taken for the login;
      *                                                    error.address.* for a wrong address
-     * @throws com.ums.common.exception.NotFoundException error.user.not_found when existingUserId does not exist;
+     * @throws com.ums.common.exception.NotFoundException error.program.not_found for an unknown program;
+     *                                                    error.user.not_found when existingUserId does not exist;
      *                                                    error.geo.not_found for an unknown areaId
      */
     NewStudentResponse create(StudentRequest request);
@@ -40,10 +44,12 @@ public interface StudentService {
      * @param studentId id of any student record of the person
      * @param request   new student code, program, batch, admission date
      * @return the new student record and the username (temporaryPassword is null)
-     * @throws com.ums.common.exception.NotFoundException error.student.not_found when the student does not exist
+     * @throws com.ums.common.exception.NotFoundException error.student.not_found when the student does not exist;
+     *                                                    error.program.not_found for an unknown program
      * @throws com.ums.common.exception.BusinessException error.student.no_login when the student has no login;
      *                                                    error.student.code_exists when the code is taken;
-     *                                                    error.student.already_in_program when already studying it
+     *                                                    error.student.already_in_program when already studying it;
+     *                                                    error.student.batch_not_in_program for a wrong batch
      */
     NewStudentResponse addProgram(Long studentId, NewProgramRequest request);
 
@@ -126,7 +132,8 @@ public interface StudentService {
      * @throws com.ums.common.exception.BusinessException error.country.unknown for a bad nationality;
      *                                                    error.user.email_taken / error.user.phone_taken when
      *                                                    another login already has them;
-     *                                                    error.person.national_id_invalid(_kh) / national_id_taken
+     *                                                    error.person.national_id_invalid(_kh) / national_id_taken;
+     *                                                    error.student.batch_not_in_program for a wrong batch
      */
     StudentResponse update(Long id, StudentUpdateRequest request);
 
@@ -147,11 +154,15 @@ public interface StudentService {
 
     /**
      * Soft delete (sets deleted_at), only for a record made by mistake or twice. Its code can't be used again.
+     * When the person has no other record (student, staff, guardian), the person is soft deleted and the login locked.
      *
-     * @param id student id
+     * @param id      student id
+     * @param adminId the admin doing it (users.id), needed to lock the login
      * @throws com.ums.common.exception.NotFoundException error.student.not_found when it does not exist or was deleted
+     * @throws com.ums.common.exception.BusinessException error.student.delete_not_active when the status is not ACTIVE;
+     *                                                    error.user.lock_self when the admin deletes their own record
      */
-    void delete(Long id);
+    void delete(Long id, Long adminId);
 
     /**
      * The student's guardians (parents...), primary first. Write it after the Guardian feature.

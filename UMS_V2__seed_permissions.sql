@@ -1,5 +1,5 @@
 -- =====================================================================
--- V2__seed_permissions.sql  -  101 permission codes for all 20 modules
+-- V2__seed_permissions.sql  -  102 permission codes for all 20 modules
 -- Safe to re-run: existing codes are updated, new codes are added.
 -- (Can be renamed to R__seed_permissions.sql to keep it as a repeatable list.)
 -- Codes must match the constants in each module's *Permissions.java
@@ -23,6 +23,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('STUDENT_VIEW',              'PEOPLE',       'VIEW',    'View student records'),
     ('STUDENT_CREATE',            'PEOPLE',       'CREATE',  'Create student records'),
     ('STUDENT_UPDATE',            'PEOPLE',       'UPDATE',  'Edit student records and status'),
+    ('STUDENT_DELETE',            'PEOPLE',       'DELETE',  'Delete a student record made by mistake (soft delete)'),
     ('STAFF_VIEW',                'PEOPLE',       'VIEW',    'View staff records'),
     ('STAFF_MANAGE',              'PEOPLE',       'MANAGE',  'Create and edit staff records'),
     ('GUARDIAN_MANAGE',           'PEOPLE',       'MANAGE',  'Manage guardians and their students'),

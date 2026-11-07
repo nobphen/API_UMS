@@ -60,22 +60,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode) {
 
-        // 1. The username must be free (for a student it is the student code)
-        String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();   // "" → null, "A@B.com" → "a@b.com"
-        if (userRepository.existsByUsernameIgnoreCase(username)) {
-            throw new BusinessException("error.user.username_taken", username);
-        }
-
-        // 2. The email must be free: it is used for "Forgot password?" and can be typed to log in
-        if (normalizedEmail != null && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new BusinessException("error.user.email_taken");
-        }
-
-        // 3. The phone must be free too
+        // 1-3. Username, email and phone must be free (see checkNewAccount)
+        checkNewAccount(username, email, phone);
+        String normalizedEmail = normalizeEmail(email);
         String normalizedPhone = PhoneNumbers.normalizeForSave(phone);   // the phone is also a login name
-        if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
-            throw new BusinessException("error.user.phone_taken");
-        }
 
         // 4. The role (STUDENT, LECTURER ...) comes from the seed data; missing = a setup mistake, not a user mistake
         Role role = roleRepository.findByCode(roleCode)
@@ -102,6 +90,28 @@ public class UserServiceImpl implements UserService {
         return new NewAccount(user.getId(), user.getUsername(), temporaryPassword);
     }
 
+    /** The checks of createAccount only: username, email and phone must be free. Saves nothing. */
+    @Override
+    public void checkNewAccount(String username, String email, String phone) {
+
+        // 1. The username must be free (for a student it is the student code)
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            throw new BusinessException("error.user.username_taken", username);
+        }
+
+        // 2. The email must be free: it is used for "Forgot password?" and can be typed to log in
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail != null && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BusinessException("error.user.email_taken");
+        }
+
+        // 3. The phone must be free too (normalizeForSave also refuses a bad phone: error.phone.invalid)
+        String normalizedPhone = PhoneNumbers.normalizeForSave(phone);
+        if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
+            throw new BusinessException("error.user.phone_taken");
+        }
+    }
+
     /** Refuses a LOCKED login, switches it ACTIVE, adds the STUDENT role if missing (and clears its permission cache). */
     @Override
     public String useForNewStudy(Long userId) {
@@ -119,6 +129,7 @@ public class UserServiceImpl implements UserService {
         if (user.getUserType() == User.UserType.APPLICANT) {
             user.setUserType(User.UserType.STUDENT);
         }
+
         // 3. Add the STUDENT role, only if the user does not have it yet
         Role studentRole = roleRepository.findByCode(STUDENT_ROLE)
                 .orElseThrow(() -> new IllegalStateException("Role STUDENT is missing; check V3__seed_roles_and_admin.sql"));
@@ -141,7 +152,7 @@ public class UserServiceImpl implements UserService {
         User user = getUser(userId);   // 404 when it does not exist
 
         // 1. Email: "" → null, "A@B.com" → "a@b.com"; nobody else may have it
-        String normalizedEmail = email == null || email.isBlank() ? null : email.trim().toLowerCase();
+        String normalizedEmail = normalizeEmail(email);
         if (normalizedEmail != null && userRepository.existsByEmailIgnoreCaseAndIdNot(normalizedEmail, userId)) {
             throw new BusinessException("error.user.email_taken");
         }
@@ -283,6 +294,11 @@ public class UserServiceImpl implements UserService {
     /** The user, or 404 when it does not exist. */
     private User getUser(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("error.user.not_found"));
+    }
+
+    /** One way to save an email: "" → null, " A@B.com " → "a@b.com". */
+    private static String normalizeEmail(String email) {
+        return email == null || email.isBlank() ? null : email.trim().toLowerCase();
     }
 
     /** Always has a letter and a digit, so it passes the same rules as a password the user picks. */

@@ -2,6 +2,7 @@ package com.ums.people.api.dto;
 
 import com.ums.people.domain.Person;
 import jakarta.validation.Valid;
+import com.ums.common.util.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -18,7 +19,7 @@ public record GuardianRequest(
         LocalDate dob,
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
-        @Email @Size(max = 150) String email,
+        @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150) String email,
         @Valid List<AddressRequest> addresses,   // birth place, permanent and current address
 
         @Size(max = 100) String occupation) {

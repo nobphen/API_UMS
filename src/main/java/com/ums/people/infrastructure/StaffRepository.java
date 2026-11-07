@@ -17,4 +17,15 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
      * @return the staff record, or empty when the login is not staff
      */
     Optional<Staff> findByUserIdAndDeletedAtIsNull(Long userId);
+
+    /**
+     * Whether the person has a staff record (not deleted). Used by StudentService.delete.
+     * <pre>
+     * SELECT s.id FROM staff s WHERE s.person_id = ? AND s.deleted_at IS NULL FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param personId person id
+     * @return true when the person is staff
+     */
+    boolean existsByPerson_IdAndDeletedAtIsNull(Long personId);
 }

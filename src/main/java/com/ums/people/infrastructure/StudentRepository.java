@@ -77,6 +77,18 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByProgramIdAndDeletedAtIsNull(Long programId);
 
     /**
+     * Whether the person has ANOTHER student record (not deleted). Used by StudentService.delete.
+     * <pre>
+     * SELECT s.id FROM students s WHERE s.person_id = ? AND s.id <> ? AND s.deleted_at IS NULL FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param personId  person id
+     * @param studentId the student record being deleted (not counted)
+     * @return true when another student record uses the person
+     */
+    boolean existsByPerson_IdAndIdNotAndDeletedAtIsNull(Long personId, Long studentId);
+
+    /**
      * Students for the list page, skipping deleted ones. Each filter that is null is not used.
      * q filters by student code or name, English or Khmer (empty q = all).
      * Sorting and page size come from the Pageable (?page=1&size=20&sort=studentCode,asc).

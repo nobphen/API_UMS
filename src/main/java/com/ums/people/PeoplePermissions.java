@@ -6,6 +6,7 @@ public final class PeoplePermissions {
     public static final String STUDENT_VIEW = "STUDENT_VIEW";
     public static final String STUDENT_CREATE = "STUDENT_CREATE";
     public static final String STUDENT_UPDATE = "STUDENT_UPDATE";
+    public static final String STUDENT_DELETE = "STUDENT_DELETE";   // soft delete a record made by mistake
     public static final String STAFF_VIEW = "STAFF_VIEW";
     public static final String STAFF_MANAGE = "STAFF_MANAGE";
     public static final String GUARDIAN_MANAGE = "GUARDIAN_MANAGE";

@@ -25,15 +25,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Students. One person can have several student records (Bachelor, then Master ...), all with the same login.
@@ -129,6 +121,20 @@ public class StudentController {
     @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
     public ApiResponse<StudentResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StudentStatusRequest request) {
         return ApiResponse.ok(studentService.changeStatus(id, request));
+    }
+
+    /**
+     * Soft delete, only for an ACTIVE record made by mistake or twice (a student who left uses status DROPPED).
+     * When the person has no other record, the person goes too and the login is locked.
+     * The admin id comes from the token, never from the request, so nobody can fake who did it.
+     * <pre>DELETE /api/v1/students/15</pre>
+     */
+    @DeleteMapping("/{id}")
+    @RequirePermission(PeoplePermissions.STUDENT_DELETE)
+    public ApiResponse<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        studentService.delete(id, adminId);
+        return ApiResponse.deleted();
     }
 
     /**

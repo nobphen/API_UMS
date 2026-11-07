@@ -19,11 +19,15 @@ import com.ums.people.domain.Country;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import com.ums.people.domain.Student;
+import com.ums.people.infrastructure.BatchRepository;
+import com.ums.people.infrastructure.GuardianRepository;
 import com.ums.people.infrastructure.PersonRepository;
 import com.ums.people.infrastructure.StaffRepository;
 import com.ums.people.infrastructure.StudentRepository;
 import com.ums.security.user.application.UserService;
 import com.ums.security.user.domain.User;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -55,12 +59,17 @@ public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
     private final PersonRepository personRepository;
     private final StaffRepository staffRepository;           // to reuse a staff member's person (createForExistingLogin)
+    private final GuardianRepository guardianRepository;     // delete: is the person also a guardian?
+    private final BatchRepository batchRepository;           // checks the program and the batch before saving
     private final StudentMapper studentMapper;               // request → entity, entity → response (MapStruct)
     private final PersonAddressService personAddressService;
     private final CountryService countryService;             // checks the nationality code
     private final UserService userService;                   // the login account (security module)
 
-    /** New student: code check → login → person + addresses → student row (see the steps below). */
+    /**
+     * New student: first EVERY check (code, login, program, batch, person, addresses), then the INSERTs
+     * (login → person → addresses → student). A mistake in the form saves nothing, so no id is lost.
+     */
     @Override
     public NewStudentResponse create(StudentRequest request) {
 
@@ -72,47 +81,78 @@ public class StudentServiceImpl implements StudentService {
             return createForExistingLogin(studentCode, request);
         }
 
-        // 2. Make the login: username = student code, a temporary password, the STUDENT role
+        // 2. CHECKS ONLY, nothing saved yet ---------------------------------
+        // 2a. Username, email and phone free for the new login
+        userService.checkNewAccount(studentCode, request.email(), request.phone());
+
+        // 2b. The program exists and the batch belongs to it
+        requireProgramAndBatch(request.programId(), request.batchId());
+
+        // 2c. The person: nationality and national ID (built in memory, not saved)
+        Person person = buildPerson(request);
+
+        // 2d. Every address
+        personAddressService.check(request.addresses());
+
+        // 3. SAVE: everything is checked, so these INSERTs only fail on a real database problem ---------
+        // 3a. The login: username = student code, a temporary password, the STUDENT role
         UserService.NewAccount account = userService.createAccount(
                 studentCode, request.email(), request.phone(), User.UserType.STUDENT, STUDENT_ROLE);
 
-        // 3. Save the person (name, birth date, nationality), then their addresses
-        Person person = newPerson(request);
+        // 3b. The person, then their addresses
+        personRepository.save(person);
         personAddressService.replaceAll(person, request.addresses());
 
-        // 4. Build the student row and link it to the person and the login
+        // 3c. The student row, linked to the person and the login
         Student student = studentMapper.toStudent(request);   // programId, batchId, admissionDate ...
         student.setStudentCode(studentCode);
         student.setPerson(person);
         student.setUserId(account.userId());
         student.setYearLevel(request.yearLevel() == null ? 1 : request.yearLevel());   // empty = year 1
-
-        // 5. INSERT, then answer with the student, the username and the temporary password (shown only this once)
         studentRepository.save(student);
+
+        // 4. Answer with the student, the username and the temporary password (shown only this once)
         return new NewStudentResponse(toResponse(student), account.username(), account.temporaryPassword());
     }
 
-    /** A staff member (or anyone else with a login) starts studying: same login, same personal details. */
+    /**
+     * A staff member (or anyone else with a login) starts studying: same login, same personal details.
+     * Same idea as create: every check first, then the changes.
+     */
     private NewStudentResponse createForExistingLogin(String studentCode, StudentRequest request) {
         Long userId = request.existingUserId();
 
-        // 1. Not already studying this program (an ACTIVE, SUSPENDED or ON_LEAVE record of it)
+        // 1. CHECKS ONLY, nothing saved yet ---------------------------------
+        // 1a. Not already studying this program (an ACTIVE, SUSPENDED or ON_LEAVE record of it)
         if (studentRepository.existsByUserIdAndProgramIdAndStatusInAndDeletedAtIsNull(
                 userId, request.programId(), Student.Status.CURRENT)) {
             throw new BusinessException("error.student.already_in_program");
         }
 
-        // 2. Keep the same login; it also gets the STUDENT role
-        String username = userService.useForNewStudy(userId);
+        // 1b. The program exists and the batch belongs to it
+        requireProgramAndBatch(request.programId(), request.batchId());
 
-        // 3. Reuse the person already on file, so name, birth date and photo are kept in one place
+        // 1c. Reuse the person already on file (name, birth date and photo kept in one place);
+        //     only when there is none, build a new one from the form (checked, not saved)
         Person person = staffRepository.findByUserIdAndDeletedAtIsNull(userId).map(Staff::getPerson)
                 .or(() -> studentRepository.findByUserIdAndDeletedAtIsNullOrderByAdmissionDateDesc(userId).stream()
                         .findFirst().map(Student::getPerson))
-                .orElseGet(() -> newPerson(request));
-        personAddressService.replaceAll(person, request.addresses());   // sent = updated; left out = kept
+                .orElseGet(() -> buildPerson(request));
 
-        // 4. Build and INSERT the new student row
+        // 1d. Every address
+        personAddressService.check(request.addresses());
+
+        // 2. SAVE ------------------------------------------------------------
+        // 2a. Keep the same login; it also gets the STUDENT role (404 / locked login stops here, before any INSERT)
+        String username = userService.useForNewStudy(userId);
+
+        // 2b. A new person only when none was on file; then the addresses (sent = updated; left out = kept)
+        if (person.getId() == null) {
+            personRepository.save(person);
+        }
+        personAddressService.replaceAll(person, request.addresses());
+
+        // 2c. Build and INSERT the new student row
         Student student = studentMapper.toStudent(request);
         student.setStudentCode(studentCode);
         student.setPerson(person);
@@ -137,11 +177,12 @@ public class StudentServiceImpl implements StudentService {
         // 2. A new, free student code (e.g. MS2030014 for the Master)
         String studentCode = requireNewCode(request.studentCode());
 
-        // 3. Not already studying this program
+        // 3. Not already studying this program, and the program and batch are right (before any INSERT)
         if (studentRepository.existsByUserIdAndProgramIdAndStatusInAndDeletedAtIsNull(
                 existing.getUserId(), request.programId(), Student.Status.CURRENT)) {
             throw new BusinessException("error.student.already_in_program");
         }
+        requireProgramAndBatch(request.programId(), request.batchId());
 
         // 4. Keep the same login
         String username = userService.useForNewStudy(existing.getUserId());
@@ -284,7 +325,8 @@ public class StudentServiceImpl implements StudentService {
             userService.updateContact(student.getUserId(), request.email(), request.phone());
         }
 
-        // 4. The student part
+        // 4. The student part (the batch must belong to the student's program)
+        requireProgramAndBatch(student.getProgramId(), request.batchId());
         student.setBatchId(request.batchId());
         student.setExpectedGraduationYear(request.expectedGraduationYear());
 
@@ -331,10 +373,40 @@ public class StudentServiceImpl implements StudentService {
         return toResponse(student);
     }
 
-    /** Not written yet. TODO: findStudent → setDeletedAt(now). */
+    /**
+     * Soft delete: only for a record made by mistake or twice. The row stays, and its code can't be used again.
+     * When the person has no other record left, the person and the login go too, so they can be added again.
+     */
     @Override
-    public void delete(Long id) {
-        throw new UnsupportedOperationException("StudentService.delete is not written yet");
+    public void delete(Long id, Long adminId) {
+
+        // 1. The student must exist and not be deleted already (404 otherwise)
+        Student student = findStudent(id);
+
+        // 2. Only ACTIVE: a mistake is always a new record; a real student who left uses changeStatus (DROPPED)
+        if (student.getStatus() != Student.Status.ACTIVE) {
+            throw new BusinessException("error.student.delete_not_active", student.getStatus());
+        }
+
+        // 3. Soft delete: set deleted_at to now (the row stays, GET no longer shows it)
+        OffsetDateTime now = OffsetDateTime.now();
+        student.setDeletedAt(now);
+
+        // 4. Nothing else uses the person (no other student record, no staff, no guardian)?
+        Person person = student.getPerson();
+        if (!hasOtherRecord(person.getId(), student.getId())) {
+
+            // 4a. Soft delete the person too: frees the national ID, so the right record can be added again
+            person.setDeletedAt(now);
+
+            // 4b. Lock the login: the deleted student must not log in any more
+            if (student.getUserId() != null) {
+                userService.lock(student.getUserId(), adminId);
+            }
+        }
+
+        // 5. No save(): JPA writes the UPDATEs at commit
+        log.info("Student {} ({}) deleted by user {}", student.getId(), student.getStudentCode(), adminId);
     }
 
     /** Not written yet. TODO: after the Guardian feature: read student_guardians of this student, primary first. */
@@ -351,12 +423,35 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toResponse(student, personAddressService.getByPerson(student.getPerson().getId()));
     }
 
-    /** A new person from the form; an empty nationality means Cambodian, an unknown code is refused. */
-    private Person newPerson(StudentRequest request) {
+    /**
+     * A new person from the form, checked but NOT saved (the caller saves it after all other checks).
+     * An empty nationality means Cambodian, an unknown code is refused.
+     */
+    private Person buildPerson(StudentRequest request) {
         Person person = studentMapper.toPerson(request);
         person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());
         person.setNationalId(requireValidNationalId(request.nationalId(), person.getNationalityCode(), null));
-        return personRepository.save(person);
+        return person;
+    }
+
+    /**
+     * The program exists (404) and, when a batch is given, the batch belongs to that program (400).
+     * Checked before saving, so a wrong id never reaches the database as a foreign-key error.
+     */
+    private void requireProgramAndBatch(Long programId, Long batchId) {
+        if (!batchRepository.programExists(programId)) {
+            throw new NotFoundException("error.program.not_found");
+        }
+        if (batchId != null && !batchRepository.existsByIdAndProgramIdAndDeletedAtIsNull(batchId, programId)) {
+            throw new BusinessException("error.student.batch_not_in_program");
+        }
+    }
+
+    /** Whether the person still has another record (not deleted): another student row, a staff row or a guardian row. */
+    private boolean hasOtherRecord(Long personId, Long studentId) {
+        return studentRepository.existsByPerson_IdAndIdNotAndDeletedAtIsNull(personId, studentId)
+                || staffRepository.existsByPerson_IdAndDeletedAtIsNull(personId)
+                || guardianRepository.existsByPerson_IdAndDeletedAtIsNull(personId);
     }
 
     /** The student, or 404 when it does not exist or was deleted (deletedAt set). */
