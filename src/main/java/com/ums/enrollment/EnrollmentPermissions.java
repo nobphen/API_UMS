@@ -12,6 +12,7 @@ public final class EnrollmentPermissions {
     public static final String GRADE_APPROVE = "GRADE_APPROVE";
     public static final String GRADE_PUBLISH = "GRADE_PUBLISH";
     public static final String GRADE_VIEW_OWN = "GRADE_VIEW_OWN";
+    public static final String GRADE_SCALE_MANAGE = "GRADE_SCALE_MANAGE";          // grade scales and assessment types
 
     private EnrollmentPermissions() {
     }

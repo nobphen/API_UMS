@@ -11,6 +11,7 @@ public final class HrPermissions {
     public static final String PAYROLL_PROCESS = "PAYROLL_PROCESS";
     public static final String PAYROLL_APPROVE = "PAYROLL_APPROVE";
     public static final String PAYSLIP_VIEW_OWN = "PAYSLIP_VIEW_OWN";
+    public static final String STAFF_LEAVE_TYPE_MANAGE = "STAFF_LEAVE_TYPE_MANAGE"; // kinds of staff leave
 
     private HrPermissions() {
     }

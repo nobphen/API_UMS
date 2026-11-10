@@ -304,8 +304,8 @@ public class StudentServiceImpl implements StudentService {
     }
 
     /**
-     * Changes the person (names, gender, dob, nationality, contact, photo) and the student's batch and
-     * expected graduation year. studentCode, program, year level, status and addresses have their own endpoints.
+     * Changes the person (names, gender, dob, nationality, contact) and the student's batch and
+     * expected graduation year. studentCode, program, year level, status, addresses and photo have their own endpoints.
      */
     @Override
     public StudentResponse update(Long id, StudentUpdateRequest request) {

@@ -1,11 +1,7 @@
 package com.ums.organization.application.impl;
 
-import com.ums.academic.section.infrastructure.ClassScheduleRepository;
-import com.ums.asset.domain.Asset;
-import com.ums.asset.infrastructure.AssetRepository;
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
-import com.ums.exam.infrastructure.ExamScheduleRepository;
 import com.ums.organization.api.dto.RoomRequest;
 import com.ums.organization.api.dto.RoomResponse;
 import com.ums.organization.application.RoomService;
@@ -33,11 +29,8 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class RoomServiceImpl implements RoomService {
 
-    private final RoomRepository roomRepository;
+    private final RoomRepository roomRepository;                     // also the delete check (isInUse): other modules' tables by SQL
     private final BuildingRepository buildingRepository;             // the room must belong to a building that exists
-    private final ClassScheduleRepository classScheduleRepository;   // delete check: classes taught in the room
-    private final ExamScheduleRepository examScheduleRepository;     // delete check: exams planned in the room
-    private final AssetRepository assetRepository;                   // delete check: projectors, tables … in the room
     private final RoomMapper roomMapper;                             // request → entity → response (MapStruct)
 
     /** New room: clean the code, check it is free in its building and the building exists, then INSERT. */
@@ -130,13 +123,11 @@ public class RoomServiceImpl implements RoomService {
     }
 
     /**
-     * Whether the room is still used today. History (theses, events) and timetable drafts are not checked:
-     * with soft delete the row stays, so they can still point to it.
+     * Whether a weekly class, a planned exam or an asset (not disposed) is in the room today.
+     * One SQL query in RoomRepository: organization must not use other modules' repositories (ModularityTest).
      */
-    private boolean isInUse(Long roomId){
-        return classScheduleRepository.existsByRoomId(roomId)                              // weekly classes
-                || examScheduleRepository.existsByRoomIdAndDeletedAtIsNull(roomId)         // planned exams
-                || assetRepository.existsByRoomIdAndDeletedAtIsNullAndStatusNot(roomId, Asset.Status.DISPOSED);   // things in the room
+    private boolean isInUse(Long roomId) {
+        return roomRepository.isInUse(roomId);
     }
 
     /** The building, or 404 when it does not exist or was deleted. Used by create and update. */

@@ -10,6 +10,7 @@ public final class SecurityPermissions {
     public static final String ROLE_VIEW = "ROLE_VIEW";
     public static final String ROLE_MANAGE = "ROLE_MANAGE";
     public static final String AUDIT_VIEW = "AUDIT_VIEW";
+    public static final String MENU_MANAGE = "MENU_MANAGE";                        // admin web menu (SUPER_ADMIN only)
 
     /** Only constants here; no objects needed. */
     private SecurityPermissions() {

@@ -8,6 +8,7 @@ public final class RequestPermissions {
     public static final String LEAVE_REQUEST_VIEW_ALL = "LEAVE_REQUEST_VIEW_ALL";
     public static final String STUDENT_REQUEST_CREATE = "STUDENT_REQUEST_CREATE";
     public static final String STUDENT_REQUEST_APPROVE = "STUDENT_REQUEST_APPROVE";
+    public static final String LEAVE_TYPE_MANAGE = "LEAVE_TYPE_MANAGE";            // kinds of student leave
 
     private RequestPermissions() {
     }

@@ -79,4 +79,22 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
      * @return true when at least one room belongs to the building
      */
     boolean existsByBuildingIdAndDeletedAtIsNull(Long buildingId);
+
+    /**
+     * Whether the room is still used today, so it can't be deleted. Plain SQL on purpose: the tables belong to
+     * other modules (academic, exam, asset), and organization must not import their repositories
+     * (Spring Modulith rule, see ModularityTest). History (theses, events) and timetable drafts are not checked:
+     * with soft delete the row stays, so they can still point to it.
+     *
+     * @param roomId room id
+     * @return true when a weekly class, a planned exam (not deleted) or an asset (not deleted, not disposed)
+     *         is in the room
+     */
+    @Query(value = """
+            SELECT EXISTS (SELECT 1 FROM class_schedules cs WHERE cs.room_id = :roomId)
+                OR EXISTS (SELECT 1 FROM exam_schedules es WHERE es.room_id = :roomId AND es.deleted_at IS NULL)
+                OR EXISTS (SELECT 1 FROM assets a
+                           WHERE a.room_id = :roomId AND a.deleted_at IS NULL AND a.status <> 'DISPOSED')
+            """, nativeQuery = true)
+    boolean isInUse(Long roomId);
 }

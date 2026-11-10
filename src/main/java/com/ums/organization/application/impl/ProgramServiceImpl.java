@@ -1,11 +1,7 @@
 package com.ums.organization.application.impl;
 
-import com.ums.academic.course.infrastructure.CurriculumRepository;
-import com.ums.admission.application.infrastructure.ApplicationRepository;
-import com.ums.admission.intake.infrastructure.IntakeProgramRepository;
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
-import com.ums.finance.fee.infrastructure.FeeStructureRepository;
 import com.ums.organization.api.dto.ProgramRequest;
 import com.ums.organization.api.dto.ProgramResponse;
 import com.ums.organization.application.ProgramService;
@@ -14,8 +10,6 @@ import com.ums.organization.domain.Department;
 import com.ums.organization.domain.Program;
 import com.ums.organization.infrastructure.DepartmentRepository;
 import com.ums.organization.infrastructure.ProgramRepository;
-import com.ums.people.infrastructure.BatchRepository;
-import com.ums.people.infrastructure.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,17 +28,9 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ProgramServiceImpl implements ProgramService {
 
-    private final ProgramRepository programRepository;
+    private final ProgramRepository programRepository;      // also the delete check (isInUse): other modules' tables by SQL
     private final DepartmentRepository departmentRepository;
     private final ProgramMapper programMapper;
-
-    // Tables that use a program; delete is refused while any of them has a row for it
-    private final StudentRepository studentRepository;
-    private final BatchRepository batchRepository;
-    private final CurriculumRepository curriculumRepository;
-    private final IntakeProgramRepository intakeProgramRepository;
-    private final ApplicationRepository applicationRepository;
-    private final FeeStructureRepository feeStructureRepository;
 
     /** New program: clean the code, check it is free and the department exists, then INSERT (status empty = ACTIVE). */
     @Override
@@ -135,15 +121,12 @@ public class ProgramServiceImpl implements ProgramService {
                 .orElseThrow(() -> new NotFoundException("error.program.not_found"));
     }
 
-
-    /** True when any table still points to this program. Students: deleted ones not counted. */
+    /**
+     * True when a student (not deleted), batch, curriculum, intake, application or fee still points to this program.
+     * One SQL query in ProgramRepository: organization must not use other modules' repositories (ModularityTest).
+     */
     private boolean isInUse(Long programId) {
-        return studentRepository.existsByProgramIdAndDeletedAtIsNull(programId)
-                || batchRepository.existsByProgramId(programId)
-                || curriculumRepository.existsByProgramId(programId)
-                || intakeProgramRepository.existsByProgramId(programId)
-                || applicationRepository.existsByProgramId(programId)
-                || feeStructureRepository.existsByProgramId(programId);
+        return programRepository.isInUse(programId);
     }
 
     /** The department, or 404 when it does not exist or was deleted. Used by create and update. */

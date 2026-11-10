@@ -6,6 +6,7 @@ public final class HostelPermissions {
     public static final String HOSTEL_MANAGE = "HOSTEL_MANAGE";
     public static final String HOSTEL_ALLOCATE = "HOSTEL_ALLOCATE";
     public static final String HOSTEL_MAINTENANCE_MANAGE = "HOSTEL_MAINTENANCE_MANAGE";
+    public static final String HOSTEL_MAINTENANCE_REPORT = "HOSTEL_MAINTENANCE_REPORT"; // student reports a problem in own room
 
     private HostelPermissions() {
     }

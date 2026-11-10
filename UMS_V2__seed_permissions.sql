@@ -1,5 +1,5 @@
 -- =====================================================================
--- V2__seed_permissions.sql  -  102 permission codes for all 20 modules
+-- V2__seed_permissions.sql  -  111 permission codes for all 20 modules
 -- Safe to re-run: existing codes are updated, new codes are added.
 -- (Can be renamed to R__seed_permissions.sql to keep it as a repeatable list.)
 -- Codes must match the constants in each module's *Permissions.java
@@ -14,6 +14,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('ROLE_VIEW',                 'SECURITY',     'VIEW',    'View roles and their permissions'),
     ('ROLE_MANAGE',               'SECURITY',     'MANAGE',  'Create, edit and delete roles and assign permissions'),
     ('AUDIT_VIEW',                'SECURITY',     'VIEW',    'View the audit log'),
+    ('MENU_MANAGE',               'SECURITY',     'MANAGE',  'Manage the admin web menu'),
     -- ORGANIZATION
     ('FACULTY_MANAGE',            'ORGANIZATION', 'MANAGE',  'Manage faculties'),
     ('DEPARTMENT_MANAGE',         'ORGANIZATION', 'MANAGE',  'Manage departments'),
@@ -28,6 +29,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('STAFF_MANAGE',              'PEOPLE',       'MANAGE',  'Create and edit staff records'),
     ('GUARDIAN_MANAGE',           'PEOPLE',       'MANAGE',  'Manage guardians and their students'),
     ('GEO_AREA_MANAGE',           'PEOPLE',       'MANAGE',  'Add and edit provinces, districts, communes and villages'),
+    ('BATCH_MANAGE',              'PEOPLE',       'MANAGE',  'Manage batches (student groups of a program by start year)'),
     -- ACADEMIC
     ('COURSE_MANAGE',             'ACADEMIC',     'MANAGE',  'Manage courses and prerequisites'),
     ('CURRICULUM_MANAGE',         'ACADEMIC',     'MANAGE',  'Manage curriculums'),
@@ -41,6 +43,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('APPLICATION_REVIEW',        'ADMISSION',    'APPROVE', 'Review applications and verify documents'),
     ('APPLICATION_DECIDE',        'ADMISSION',    'APPROVE', 'Accept, waitlist or reject applications'),
     ('APPLICANT_ENROLL',          'ADMISSION',    'CREATE',  'Convert an accepted applicant into a student'),
+    ('INTAKE_MANAGE',             'ADMISSION',    'MANAGE',  'Manage admission intakes, their programs, quotas and form prices'),
     -- ENROLLMENT
     ('ENROLLMENT_MANAGE',         'ENROLLMENT',   'MANAGE',  'Enroll and drop students in class sections'),
     ('ENROLLMENT_SELF',           'ENROLLMENT',   'CREATE',  'Register for own classes'),
@@ -51,6 +54,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('GRADE_APPROVE',             'ENROLLMENT',   'APPROVE', 'Approve submitted grades'),
     ('GRADE_PUBLISH',             'ENROLLMENT',   'APPROVE', 'Publish approved grades to students'),
     ('GRADE_VIEW_OWN',            'ENROLLMENT',   'VIEW',    'View own grades and GPA'),
+    ('GRADE_SCALE_MANAGE',        'ENROLLMENT',   'MANAGE',  'Manage grade scales and assessment types'),
     -- EXAM
     ('EXAM_SCHEDULE_MANAGE',      'EXAM',         'MANAGE',  'Manage exam schedules and invigilators'),
     ('EXAM_SEAT_MANAGE',          'EXAM',         'MANAGE',  'Assign exam seats and eligibility'),
@@ -62,6 +66,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('LEAVE_REQUEST_VIEW_ALL',    'REQUEST',      'VIEW',    'View all leave requests'),
     ('STUDENT_REQUEST_CREATE',    'REQUEST',      'CREATE',  'Submit student requests (add/drop, transfer, withdrawal)'),
     ('STUDENT_REQUEST_APPROVE',   'REQUEST',      'APPROVE', 'Approve student requests at own approval step'),
+    ('LEAVE_TYPE_MANAGE',         'REQUEST',      'MANAGE',  'Manage kinds of student leave'),
     -- GRADUATION
     ('GRADUATION_VERIFY',         'GRADUATION',   'APPROVE', 'Verify graduation requirements'),
     ('GRADUATION_APPROVE',        'GRADUATION',   'APPROVE', 'Approve graduation'),
@@ -70,6 +75,8 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('THESIS_MANAGE',             'GRADUATION',   'MANAGE',  'Manage theses, supervisors and defense committees'),
     ('THESIS_SUPERVISE',          'GRADUATION',   'APPROVE', 'Approve proposals and record results for own supervised theses'),
     ('THESIS_SUBMIT',             'GRADUATION',   'CREATE',  'Submit own thesis proposal and final copy'),
+    ('GRADUATION_APPLY',          'GRADUATION',   'CREATE',  'Apply to graduate (own student record)'),
+    ('TRANSCRIPT_REQUEST',        'GRADUATION',   'CREATE',  'Request a transcript (own student record)'),
     -- FINANCE
     ('FEE_MANAGE',                'FINANCE',      'MANAGE',  'Manage fee types and fee structures'),
     ('INVOICE_VIEW',              'FINANCE',      'VIEW',    'View invoices'),
@@ -94,6 +101,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('PAYROLL_PROCESS',           'HR',           'MANAGE',  'Process payroll'),
     ('PAYROLL_APPROVE',           'HR',           'APPROVE', 'Approve payroll'),
     ('PAYSLIP_VIEW_OWN',          'HR',           'VIEW',    'View own payslips'),
+    ('STAFF_LEAVE_TYPE_MANAGE',   'HR',           'MANAGE',  'Manage kinds of staff leave'),
     -- LIBRARY
     ('BOOK_MANAGE',               'LIBRARY',      'MANAGE',  'Manage books, copies and categories'),
     ('LOAN_ISSUE',                'LIBRARY',      'CREATE',  'Issue books on loan'),
@@ -105,6 +113,7 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('HOSTEL_MANAGE',             'HOSTEL',       'MANAGE',  'Manage hostels, rooms and beds'),
     ('HOSTEL_ALLOCATE',           'HOSTEL',       'MANAGE',  'Allocate beds to students'),
     ('HOSTEL_MAINTENANCE_MANAGE', 'HOSTEL',       'MANAGE',  'Manage hostel maintenance requests'),
+    ('HOSTEL_MAINTENANCE_REPORT', 'HOSTEL',       'CREATE',  'Report a problem in own hostel room'),
     -- TRANSPORT
     ('TRANSPORT_MANAGE',          'TRANSPORT',    'MANAGE',  'Manage vehicles, routes and stops'),
     ('TRANSPORT_SUBSCRIBE',       'TRANSPORT',    'CREATE',  'Subscribe students to routes'),

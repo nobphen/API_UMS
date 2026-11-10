@@ -89,6 +89,17 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByPerson_IdAndIdNotAndDeletedAtIsNull(Long personId, Long studentId);
 
     /**
+     * Whether a student is in this batch, deleted students not counted. Used by BatchService.delete.
+     * <pre>
+     * SELECT s.id FROM students s WHERE s.batch_id = ? AND s.deleted_at IS NULL FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param batchId batch id
+     * @return true when at least one student record uses the batch
+     */
+    boolean existsByBatchIdAndDeletedAtIsNull(Long batchId);
+
+    /**
      * Students for the list page, skipping deleted ones. Each filter that is null is not used.
      * q filters by student code or name, English or Khmer (empty q = all).
      * Sorting and page size come from the Pageable (?page=1&size=20&sort=studentCode,asc).

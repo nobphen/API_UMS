@@ -9,6 +9,7 @@ public final class AdmissionPermissions {
     public static final String APPLICATION_REVIEW = "APPLICATION_REVIEW";
     public static final String APPLICATION_DECIDE = "APPLICATION_DECIDE";
     public static final String APPLICANT_ENROLL = "APPLICANT_ENROLL";
+    public static final String INTAKE_MANAGE = "INTAKE_MANAGE";                    // intakes, their programs, quota and form price
 
     private AdmissionPermissions() {
     }

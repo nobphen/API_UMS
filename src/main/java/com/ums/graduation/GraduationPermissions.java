@@ -10,6 +10,8 @@ public final class GraduationPermissions {
     public static final String THESIS_MANAGE = "THESIS_MANAGE";
     public static final String THESIS_SUPERVISE = "THESIS_SUPERVISE";
     public static final String THESIS_SUBMIT = "THESIS_SUBMIT";
+    public static final String GRADUATION_APPLY = "GRADUATION_APPLY";      // student applies to graduate (own record)
+    public static final String TRANSCRIPT_REQUEST = "TRANSCRIPT_REQUEST";  // student asks for a transcript (own record)
 
     private GraduationPermissions() {
     }

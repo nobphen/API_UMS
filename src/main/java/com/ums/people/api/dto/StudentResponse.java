@@ -18,6 +18,7 @@ public record StudentResponse(
         LocalDate dob,
         @PhoneDisplay String phone,
         String email,
+        String photoUrl,
         Long programId,
         Long batchId,
         int yearLevel,

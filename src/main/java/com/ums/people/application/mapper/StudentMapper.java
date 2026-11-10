@@ -29,9 +29,10 @@ public interface StudentMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Person toPerson(StudentRequest request);
 
-    /** Update form → the person already loaded (@MappingTarget: no new object). Names, gender, dob, photo ... */
+    /** Update form → the person already loaded (@MappingTarget: no new object). Names, gender, dob, contact ... */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "nationalityCode", ignore = true)   // set by the service (countryService checks the code)
+    @Mapping(target = "photoUrl", ignore = true)          // kept as it is: the photo has its own endpoint
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -58,6 +59,7 @@ public interface StudentMapper {
     @Mapping(target = "dob", source = "student.person.dob")
     @Mapping(target = "phone", source = "student.person.phone")
     @Mapping(target = "email", source = "student.person.email")
+    @Mapping(target = "photoUrl", source = "student.person.photoUrl")
     @Mapping(target = "personId", source = "student.person.id")
     StudentResponse toResponse(Student student, List<AddressResponse> addresses);
 }
