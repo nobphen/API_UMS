@@ -5,6 +5,7 @@ import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.PromoteStudentsRequest;
 import com.ums.people.api.dto.PromoteStudentsResponse;
+import com.ums.people.api.dto.StatusHistoryResponse;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
 import com.ums.people.api.dto.StudentStatusRequest;
@@ -105,8 +106,6 @@ public interface StudentService {
      */
     List<StudentResponse> getByUser(Long userId);
 
-    /// TO DO: not written yet in StudentServiceImpl ------------------
-
     /**
      * One page of students, deleted ones left out.
      *
@@ -141,8 +140,11 @@ public interface StudentService {
      * A real event: SUSPENDED, ON_LEAVE, back to ACTIVE, GRADUATED or DROPPED.
      * Allowed: ACTIVE → any; SUSPENDED / ON_LEAVE → ACTIVE or DROPPED; DROPPED → ACTIVE; GRADUATED → nothing.
      *
+     * Every change is also saved in student_status_history with the reason and the admin.
+     *
      * @param id      student id
-     * @param request the new status and the reason (the reason only goes to the log for now)
+     * @param request the new status and the reason (saved in student_status_history)
+     * @param adminId the admin doing it (users.id), saved as changed_by
      * @return the student after the change
      * @throws com.ums.common.exception.NotFoundException error.student.not_found when it does not exist or was deleted
      * @throws com.ums.common.exception.BusinessException error.student.status_same;
@@ -150,7 +152,16 @@ public interface StudentService {
      *                                                    error.student.already_in_program (DROPPED → ACTIVE while
      *                                                    already studying the program again)
      */
-    StudentResponse changeStatus(Long id, StudentStatusRequest request);
+    StudentResponse changeStatus(Long id, StudentStatusRequest request, Long adminId);
+
+    /**
+     * Every status change of the student record with its reason, newest first (registrar: "why was this student dropped?").
+     *
+     * @param id student id
+     * @return the changes, newest first; empty when the status never changed
+     * @throws com.ums.common.exception.NotFoundException error.student.not_found when it does not exist or was deleted
+     */
+    List<StatusHistoryResponse> getStatusHistory(Long id);
 
     /**
      * Soft delete (sets deleted_at), only for a record made by mistake or twice. Its code can't be used again.

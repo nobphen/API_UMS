@@ -197,7 +197,7 @@ CREATE TABLE rooms (
     UNIQUE (building_id, code)
 );
 
--- ---------- 3. PEOPLE (9) ----------
+-- ---------- 3. PEOPLE (11) ----------
 -- Every country (ISO 3166-1), for a person's nationality and an address's country. Seeded by V5__seed_countries.sql.
 CREATE TABLE countries (
     code           VARCHAR(2)   PRIMARY KEY CHECK (code ~ '^[A-Z]{2}$'),   -- KH, TH, VN …
@@ -408,6 +408,29 @@ CREATE TABLE student_guardians (
     is_primary   BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (student_id, guardian_id)
 );
+
+-- Every status change with its reason (insert only, never changed): "on leave 2027, back 2028, resigned 2030"
+CREATE TABLE staff_status_history (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    staff_id   BIGINT NOT NULL REFERENCES staff(id),
+    old_status VARCHAR(20) NOT NULL,
+    new_status VARCHAR(20) NOT NULL,
+    reason     VARCHAR(255),
+    changed_by BIGINT REFERENCES users(id),   -- the admin who changed it
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_staff_status_history_staff ON staff_status_history (staff_id, changed_at DESC);
+
+CREATE TABLE student_status_history (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id BIGINT NOT NULL REFERENCES students(id),
+    old_status VARCHAR(20) NOT NULL,
+    new_status VARCHAR(20) NOT NULL,
+    reason     VARCHAR(255),
+    changed_by BIGINT REFERENCES users(id),   -- the admin who changed it
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_student_status_history_student ON student_status_history (student_id, changed_at DESC);
 
 -- ---------- 4. ACADEMIC STRUCTURE (9) ----------
 CREATE TABLE academic_years (

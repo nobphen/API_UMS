@@ -66,6 +66,21 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
                                                                      Collection<Student.Status> statuses);
 
     /**
+     * True when the login is a current student of any program. Used by StaffService.changeStatus:
+     * a lecturer who resigns but still studies (e.g. a PhD) keeps their login.
+     * <pre>
+     * SELECT s.id FROM students s
+     * WHERE s.user_id = ? AND s.status IN (?, ?, ...) AND s.deleted_at IS NULL
+     * FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param userId   id of the login (users.id)
+     * @param statuses statuses that count as current
+     * @return true when such a student record exists
+     */
+    boolean existsByUserIdAndStatusInAndDeletedAtIsNull(Long userId, Collection<Student.Status> statuses);
+
+    /**
      * Whether a student studies (or studied) this program, deleted students not counted. Used by ProgramService.delete.
      * <pre>
      * SELECT EXISTS (SELECT 1 FROM students s WHERE s.program_id = ? AND s.deleted_at IS NULL)
@@ -87,6 +102,17 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
      * @return true when another student record uses the person
      */
     boolean existsByPerson_IdAndIdNotAndDeletedAtIsNull(Long personId, Long studentId);
+
+    /**
+     * Whether the person has a student record (not deleted). Used by StaffService.delete.
+     * <pre>
+     * SELECT s.id FROM students s WHERE s.person_id = ? AND s.deleted_at IS NULL FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param personId person id
+     * @return true when the person is a student
+     */
+    boolean existsByPerson_IdAndDeletedAtIsNull(Long personId);
 
     /**
      * Whether a student is in this batch, deleted students not counted. Used by BatchService.delete.

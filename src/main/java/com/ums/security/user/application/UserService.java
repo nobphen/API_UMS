@@ -19,7 +19,7 @@ public interface UserService {
      * @param email    optional; must be free when given
      * @param phone    optional, as typed; saved normalized (+855...); must be free when given
      * @param userType STUDENT, STAFF, GUARDIAN...
-     * @param roleCode role given straight away, e.g. STUDENT
+     * @param roleCode role given straight away, e.g. STUDENT; null = no role now (an admin gives one later)
      * @return the user id, username and the temporary password (show it once, then it is gone)
      * @throws com.ums.common.exception.BusinessException error.user.username_taken / email_taken / phone_taken;
      *                                                    error.phone.invalid
@@ -49,6 +49,19 @@ public interface UserService {
      * @throws com.ums.common.exception.BusinessException error.user.locked_unlock_first when the login is LOCKED
      */
     String useForNewStudy(Long userId);
+
+    /**
+     * An existing login gets a job (e.g. a graduate hired as a lecturer): it gets the role when one is given,
+     * and is switched back on if it was disabled. The user type becomes STAFF (an ADMIN keeps ADMIN);
+     * the roles it already has stay (a lecturer who studies keeps STUDENT too).
+     *
+     * @param userId   the existing login
+     * @param roleCode the role to add, e.g. LECTURER; null = no role now (an admin gives one later)
+     * @return the username, which does not change
+     * @throws com.ums.common.exception.NotFoundException error.user.not_found
+     * @throws com.ums.common.exception.BusinessException error.user.locked_unlock_first when the login is LOCKED
+     */
+    String useForNewJob(Long userId, String roleCode);
 
     /**
      * An admin (e.g. the registrar) changes the login email and phone, so "Forgot password?" and SMS login

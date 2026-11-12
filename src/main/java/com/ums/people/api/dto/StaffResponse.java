@@ -5,9 +5,13 @@ import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import java.time.LocalDate;
 
-/** A staff member (person details + job details) sent back to the client. userId is null when there is no login. Not used yet. */
+/**
+ * A staff member (person details + job details) sent back to the client. userId is null when there is no login.
+ * personId is for the person endpoints: PUT /persons/{personId}/addresses (and the photo later).
+ */
 public record StaffResponse(
         Long id,
+        Long personId,
         String staffCode,
         String firstName,
         String lastName,
@@ -17,6 +21,7 @@ public record StaffResponse(
         LocalDate dob,
         @PhoneDisplay String phone,
         String email,
+        String photoUrl,
         Long departmentId,
         String position,
         String positionKh,

@@ -19,8 +19,6 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface StudentMapper {
 
-
-
     /** The person part of the form: names, gender, dob, nationalId, phone, email. */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "photoUrl", ignore = true)

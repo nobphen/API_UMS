@@ -8,6 +8,7 @@ import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.PromoteStudentsRequest;
 import com.ums.people.api.dto.PromoteStudentsResponse;
+import com.ums.people.api.dto.StatusHistoryResponse;
 import com.ums.people.api.dto.StudentCodeRequest;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
@@ -115,12 +116,25 @@ public class StudentController {
 
     /**
      * A real event: SUSPENDED, ON_LEAVE, back to ACTIVE, GRADUATED or DROPPED. Returns the student after the change.
+     * The reason and the admin (from the token) are saved in student_status_history.
      * <pre>POST /api/v1/students/15/status  {"status": "GRADUATED", "reason": "Finished Bachelor 2030"}</pre>
      */
     @PostMapping("/{id}/status")
     @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
-    public ApiResponse<StudentResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StudentStatusRequest request) {
-        return ApiResponse.ok(studentService.changeStatus(id, request));
+    public ApiResponse<StudentResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StudentStatusRequest request,
+                                                     @AuthenticationPrincipal Jwt jwt) {
+        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        return ApiResponse.ok(studentService.changeStatus(id, request, adminId));
+    }
+
+    /**
+     * Every status change of the student record with its reason, newest first.
+     * <pre>GET /api/v1/students/15/status-history</pre>
+     */
+    @GetMapping("/{id}/status-history")
+    @RequirePermission(PeoplePermissions.STUDENT_VIEW)
+    public ApiResponse<List<StatusHistoryResponse>> statusHistory(@PathVariable Long id) {
+        return ApiResponse.ok(studentService.getStatusHistory(id));
     }
 
     /**

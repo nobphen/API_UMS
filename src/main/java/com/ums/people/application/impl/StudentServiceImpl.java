@@ -7,23 +7,26 @@ import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.PromoteStudentsRequest;
 import com.ums.people.api.dto.PromoteStudentsResponse;
+import com.ums.people.api.dto.StatusHistoryResponse;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
 import com.ums.people.api.dto.StudentStatusRequest;
 import com.ums.people.api.dto.StudentUpdateRequest;
 import com.ums.people.application.CountryService;
 import com.ums.people.application.PersonAddressService;
+import com.ums.people.application.PersonService;
 import com.ums.people.application.StudentService;
 import com.ums.people.application.mapper.StudentMapper;
-import com.ums.people.domain.Country;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import com.ums.people.domain.Student;
+import com.ums.people.domain.StudentStatusHistory;
 import com.ums.people.infrastructure.BatchRepository;
 import com.ums.people.infrastructure.GuardianRepository;
 import com.ums.people.infrastructure.PersonRepository;
 import com.ums.people.infrastructure.StaffRepository;
 import com.ums.people.infrastructure.StudentRepository;
+import com.ums.people.infrastructure.StudentStatusHistoryRepository;
 import com.ums.security.user.application.UserService;
 import com.ums.security.user.domain.User;
 
@@ -63,8 +66,10 @@ public class StudentServiceImpl implements StudentService {
     private final BatchRepository batchRepository;           // checks the program and the batch before saving
     private final StudentMapper studentMapper;               // request → entity, entity → response (MapStruct)
     private final PersonAddressService personAddressService;
+    private final PersonService personService;               // checks the national ID (shared with staff)
     private final CountryService countryService;             // checks the nationality code
     private final UserService userService;                   // the login account (security module)
+    private final StudentStatusHistoryRepository studentStatusHistoryRepository;   // changeStatus: one row per change
 
     /**
      * New student: first EVERY check (code, login, program, batch, person, addresses), then the INSERTs
@@ -206,33 +211,46 @@ public class StudentServiceImpl implements StudentService {
     /** Moves every ACTIVE student of the program (and batch) in fromYear up one year, except the kept ones. */
     @Override
     public PromoteStudentsResponse promote(PromoteStudentsRequest request) {
-        // The students repeating the year; a Set makes contains() fast
+
+        // 1. The students repeating the year; a Set makes contains() fast
         Set<Long> keep = request.keepStudentIds() == null ? Set.of() : Set.copyOf(request.keepStudentIds());
         int promoted = 0;
         int kept = 0;
 
-        // Every ACTIVE student of the program in fromYear (SUSPENDED or ON_LEAVE students do not move)
+        // 2. Every ACTIVE student of the program in fromYear (SUSPENDED or ON_LEAVE students do not move)
         for (Student student : studentRepository.findByProgramIdAndYearLevelAndStatusAndDeletedAtIsNull(
                 request.programId(), request.fromYear(), Student.Status.ACTIVE)) {
+
+            // 2a. Another batch: not this time (batchId empty = every batch)
             if (request.batchId() != null && !request.batchId().equals(student.getBatchId())) {
-                continue;   // another batch: not this time
+                continue;
             }
-            // No save(): the students were loaded in this transaction, so JPA writes the UPDATEs at commit
+
+            // 2b. Kept back (repeating the year) or moved up one year.
+            //     No save(): the students were loaded in this transaction, so JPA writes the UPDATEs at commit
             if (keep.contains(student.getId())) {
-                kept++;   // repeating the year
+                kept++;
             } else {
                 student.setYearLevel(request.fromYear() + 1);
                 promoted++;
             }
         }
+
+        // 3. How many moved up and how many were kept
         return new PromoteStudentsResponse(promoted, kept);
     }
 
     /** Sets one student's year by hand (the controller already checked 1 to 10). */
     @Override
     public StudentResponse setYearLevel(Long id, int yearLevel) {
+
+        // 1. The student, or 404
         Student student = findStudent(id);
-        student.setYearLevel(yearLevel);   // no save() needed: JPA writes the UPDATE at commit
+
+        // 2. No save(): JPA writes the UPDATE at commit
+        student.setYearLevel(yearLevel);
+
+        // 3. The student after the change
         return toResponse(student);
     }
 
@@ -285,9 +303,6 @@ public class StudentServiceImpl implements StudentService {
                 .toList();
     }
 
-    /// TO DO: write these yourself -----------------------------------
-    // Each one throws "not written yet" for now, so a call by mistake gives a clear error instead of null.
-
     /**
      * One page: filters by program, batch, year and status (null = all), searches code or name,
      * then each student → response with addresses (this::toResponse, because the mapper also needs the addresses).
@@ -317,7 +332,7 @@ public class StudentServiceImpl implements StudentService {
         Person person = student.getPerson();
         studentMapper.updatePerson(request, person);
         person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());   // empty = KH
-        person.setNationalId(requireValidNationalId(request.nationalId(), person.getNationalityCode(), person.getId()));
+        person.setNationalId(personService.requireValidNationalId(request.nationalId(), person.getNationalityCode(), person.getId()));
 
         // 3. The login gets the same email and phone, so "Forgot password?" and SMS login use the new ones
         //    (400 when another user already has them; then nothing above is saved either)
@@ -336,10 +351,10 @@ public class StudentServiceImpl implements StudentService {
 
     /**
      * Different status → allowed change (see canChange) → DROPPED back to ACTIVE only when not already studying
-     * the program again → set it. Student is @Auditable, so audit_logs keeps who changed it and old → new status.
+     * the program again → set it → one row in student_status_history with the reason and the admin.
      */
     @Override
-    public StudentResponse changeStatus(Long id, StudentStatusRequest request) {
+    public StudentResponse changeStatus(Long id, StudentStatusRequest request, Long adminId) {
 
         // 1. The student, or 404
         Student student = findStudent(id);
@@ -364,13 +379,36 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("error.student.already_in_program");
         }
 
-        // 5. No save(): JPA writes the UPDATE at commit.
-        //    The reason has no column yet, so for now it only goes to the log next to the audit row
+        // 5. No save() for the student row: JPA writes the UPDATE at commit
         student.setStatus(next);
-        log.info("Student {} ({}) status {} → {}: {}", student.getId(), student.getStudentCode(), old, next, request.reason());
 
-        // 6. The student after the change, so the screen can show the new status at once
+        // 6. INSERT one history row: old → new status, the reason and who did it
+        StudentStatusHistory history = new StudentStatusHistory();
+        history.setStudentId(student.getId());
+        history.setOldStatus(old);
+        history.setNewStatus(next);
+        history.setReason(blankToNull(request.reason()));
+        history.setChangedBy(adminId);
+        history.setChangedAt(OffsetDateTime.now());
+        studentStatusHistoryRepository.save(history);
+
+        // 7. The student after the change, so the screen can show the new status at once
         return toResponse(student);
+    }
+
+    /** Every status change of the student record, newest first; 404 when the student does not exist. */
+    @Override
+    @Transactional(readOnly = true)
+    public List<StatusHistoryResponse> getStatusHistory(Long id) {
+
+        // 1. The student, or 404
+        Student student = findStudent(id);
+
+        // 2. Each history row → response
+        return studentStatusHistoryRepository.findByStudentIdOrderByChangedAtDescIdDesc(student.getId()).stream()
+                .map(h -> new StatusHistoryResponse(h.getId(), h.getOldStatus().name(), h.getNewStatus().name(),
+                        h.getReason(), h.getChangedBy(), h.getChangedAt()))
+                .toList();
     }
 
     /**
@@ -430,7 +468,7 @@ public class StudentServiceImpl implements StudentService {
     private Person buildPerson(StudentRequest request) {
         Person person = studentMapper.toPerson(request);
         person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());
-        person.setNationalId(requireValidNationalId(request.nationalId(), person.getNationalityCode(), null));
+        person.setNationalId(personService.requireValidNationalId(request.nationalId(), person.getNationalityCode(), null));
         return person;
     }
 
@@ -462,41 +500,6 @@ public class StudentServiceImpl implements StudentService {
     }
 
     /**
-     * National ID is optional; when given it is cleaned, checked and must be free.
-     * <pre>
-     * "0102 0304-0"  → "010203040"   spaces and - removed, letters upper case
-     * Cambodian (KH) → exactly 9 digits                (ID card)
-     * other          → 6 to 20 letters or digits       (passport, e.g. N1234567)
-     * </pre>
-     *
-     * @param nationalId      what was typed (null or empty = no national ID)
-     * @param nationalityCode the person's nationality, already checked (KH, TH ...)
-     * @param personId        the person being changed; null for a new person
-     * @return the cleaned national ID, or null
-     */
-    private String requireValidNationalId(String nationalId, String nationalityCode, Long personId) {
-        if (nationalId == null || nationalId.isBlank()) {
-            return null;   // optional: e.g. under 18, no ID card yet
-        }
-        String cleaned = nationalId.replaceAll("[\\s-]", "").toUpperCase();
-
-        // 1. The format depends on the nationality
-        boolean cambodian = Country.CAMBODIA.equals(nationalityCode);
-        if (cambodian ? !cleaned.matches("\\d{9}") : !cleaned.matches("[A-Z0-9]{6,20}")) {
-            throw new BusinessException(cambodian ? "error.person.national_id_invalid_kh" : "error.person.national_id_invalid");
-        }
-
-        // 2. One person = one national ID (also catches the same student registered twice)
-        boolean taken = personId == null
-                ? personRepository.existsByNationalIdAndDeletedAtIsNull(cleaned)
-                : personRepository.existsByNationalIdAndDeletedAtIsNullAndIdNot(cleaned, personId);
-        if (taken) {
-            throw new BusinessException("error.person.national_id_taken", cleaned);
-        }
-        return cleaned;
-    }
-
-    /**
      * Which status changes make sense in real life:
      * <pre>
      * ACTIVE              → SUSPENDED, ON_LEAVE, GRADUATED, DROPPED
@@ -524,5 +527,10 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("error.student.code_exists", studentCode);
         }
         return studentCode;
+    }
+
+    /** The text without spaces around it, or null when it is empty (an empty reason is saved as NULL). */
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

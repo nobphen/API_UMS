@@ -55,7 +55,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Username, email and phone must be free → random temporary password (saved only as a hash)
-     * → INSERT the user (mustChangePassword = true) → give the role.
+     * → INSERT the user (mustChangePassword = true) → give the role (null role = no role now).
      */
     @Override
     public NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode) {
@@ -65,8 +65,9 @@ public class UserServiceImpl implements UserService {
         String normalizedEmail = normalizeEmail(email);
         String normalizedPhone = PhoneNumbers.normalizeForSave(phone);   // the phone is also a login name
 
-        // 4. The role (STUDENT, LECTURER ...) comes from the seed data; missing = a setup mistake, not a user mistake
-        Role role = roleRepository.findByCode(roleCode)
+        // 4. The role (STUDENT, LECTURER ...) comes from the seed data; missing = a setup mistake, not a user mistake.
+        //    null = no role now (e.g. OFFICE staff: an admin gives REGISTRAR, ACCOUNTANT ... later)
+        Role role = roleCode == null ? null : roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
 
         // 5. INSERT the user with a random temporary password; only its hash is saved, never the password itself
@@ -80,11 +81,13 @@ public class UserServiceImpl implements UserService {
         user.setMustChangePassword(true);   // the first login asks for a new password
         userRepository.save(user);          // after save() the user has its id
 
-        // 6. Give the role: one user_roles row (user ↔ role)
-        UserRole userRole = new UserRole();
-        userRole.setUser(user);
-        userRole.setRole(role);
-        userRoleRepository.save(userRole);
+        // 6. Give the role: one user_roles row (user ↔ role); no role = no row
+        if (role != null) {
+            UserRole userRole = new UserRole();
+            userRole.setUser(user);
+            userRole.setRole(role);
+            userRoleRepository.save(userRole);
+        }
 
         // 7. Answer with the plain temporary password: this is the only time anyone can see it
         return new NewAccount(user.getId(), user.getUsername(), temporaryPassword);
@@ -140,6 +143,40 @@ public class UserServiceImpl implements UserService {
             userRole.setRole(studentRole);
             userRoleRepository.save(userRole);
             permissionCacheService.evict(userId);   // forget the old permissions, so the student ones work at once
+        }
+
+        // 4. Same login as before: answer with its username (no new password)
+        return user.getUsername();
+    }
+
+    /** Refuses a LOCKED login, switches it ACTIVE, type STAFF, adds the job role if missing (and clears its permission cache). */
+    @Override
+    public String useForNewJob(Long userId, String roleCode) {
+
+        // 1. The login must exist (404) and not be locked by an admin
+        User user = getUser(userId);
+        if (user.getStatus() == User.Status.LOCKED) {
+            throw new BusinessException("error.user.locked_unlock_first");
+        }
+
+        // 2. Switch it on again and set its type: the job is now the main type (an admin stays admin)
+        user.setStatus(User.Status.ACTIVE);   // DISABLED after graduating → in use again
+        if (user.getUserType() != User.UserType.ADMIN) {
+            user.setUserType(User.UserType.STAFF);
+        }
+
+        // 3. Add the role, only when one is given and the user does not have it yet
+        if (roleCode != null) {
+            Role role = roleRepository.findByCode(roleCode)
+                    .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
+
+            if (!userRoleRepository.existsByUser_IdAndRole_Id(userId, role.getId())) {
+                UserRole userRole = new UserRole();
+                userRole.setUser(user);
+                userRole.setRole(role);
+                userRoleRepository.save(userRole);
+                permissionCacheService.evict(userId);   // forget the old permissions, so the new ones work at once
+            }
         }
 
         // 4. Same login as before: answer with its username (no new password)
