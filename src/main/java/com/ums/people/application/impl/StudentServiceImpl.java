@@ -102,7 +102,7 @@ public class StudentServiceImpl implements StudentService {
         // 3. SAVE: everything is checked, so these INSERTs only fail on a real database problem ---------
         // 3a. The login: username = student code, a temporary password, the STUDENT role
         UserService.NewAccount account = userService.createAccount(
-                studentCode, request.email(), request.phone(), User.UserType.STUDENT, STUDENT_ROLE);
+                studentCode, request.email(), request.phone(), User.UserType.STUDENT, List.of(STUDENT_ROLE));
 
         // 3b. The person, then their addresses
         personRepository.save(person);

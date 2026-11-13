@@ -55,20 +55,19 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Username, email and phone must be free → random temporary password (saved only as a hash)
-     * → INSERT the user (mustChangePassword = true) → give the role (null role = no role now).
+     * → INSERT the user (mustChangePassword = true) → give the roles (empty list = no role now).
      */
     @Override
-    public NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode) {
+    public NewAccount createAccount(String username, String email, String phone, User.UserType userType, List<String> roleCodes) {
 
         // 1-3. Username, email and phone must be free (see checkNewAccount)
         checkNewAccount(username, email, phone);
         String normalizedEmail = normalizeEmail(email);
         String normalizedPhone = PhoneNumbers.normalizeForSave(phone);   // the phone is also a login name
 
-        // 4. The role (STUDENT, LECTURER ...) comes from the seed data; missing = a setup mistake, not a user mistake.
-        //    null = no role now (e.g. OFFICE staff: an admin gives REGISTRAR, ACCOUNTANT ... later)
-        Role role = roleCode == null ? null : roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
+        // 4. The roles (STUDENT, STAFF, LECTURER ...) come from the seed data; missing = a setup mistake, not a user mistake.
+        //    Looked up before the INSERT, so a missing role saves nothing
+        List<Role> roles = roleCodes.stream().map(this::requireSystemRole).toList();
 
         // 5. INSERT the user with a random temporary password; only its hash is saved, never the password itself
         String temporaryPassword = temporaryPassword();
@@ -81,8 +80,8 @@ public class UserServiceImpl implements UserService {
         user.setMustChangePassword(true);   // the first login asks for a new password
         userRepository.save(user);          // after save() the user has its id
 
-        // 6. Give the role: one user_roles row (user ↔ role); no role = no row
-        if (role != null) {
+        // 6. Give the roles: one user_roles row per role (user ↔ role); empty list = no row
+        for (Role role : roles) {
             UserRole userRole = new UserRole();
             userRole.setUser(user);
             userRole.setRole(role);
@@ -149,9 +148,9 @@ public class UserServiceImpl implements UserService {
         return user.getUsername();
     }
 
-    /** Refuses a LOCKED login, switches it ACTIVE, type STAFF, adds the job role if missing (and clears its permission cache). */
+    /** Refuses a LOCKED login, switches it ACTIVE, type STAFF, adds each job role if missing (and clears its permission cache). */
     @Override
-    public String useForNewJob(Long userId, String roleCode) {
+    public String useForNewJob(Long userId, List<String> roleCodes) {
 
         // 1. The login must exist (404) and not be locked by an admin
         User user = getUser(userId);
@@ -165,10 +164,9 @@ public class UserServiceImpl implements UserService {
             user.setUserType(User.UserType.STAFF);
         }
 
-        // 3. Add the role, only when one is given and the user does not have it yet
-        if (roleCode != null) {
-            Role role = roleRepository.findByCode(roleCode)
-                    .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
+        // 3. Add each role the user does not have yet (a role they already have is skipped)
+        for (String roleCode : roleCodes) {
+            Role role = requireSystemRole(roleCode);
 
             if (!userRoleRepository.existsByUser_IdAndRole_Id(userId, role.getId())) {
                 UserRole userRole = new UserRole();
@@ -331,6 +329,12 @@ public class UserServiceImpl implements UserService {
     /** The user, or 404 when it does not exist. */
     private User getUser(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("error.user.not_found"));
+    }
+
+    /** A role from the seed data (STUDENT, STAFF, LECTURER ...); missing = a setup mistake, not a user mistake (500). */
+    private Role requireSystemRole(String roleCode) {
+        return roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new IllegalStateException("Role " + roleCode + " is missing; check V3__seed_roles_and_admin.sql"));
     }
 
     /** One way to save an email: "" → null, " A@B.com " → "a@b.com". */

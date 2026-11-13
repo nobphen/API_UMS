@@ -7,6 +7,7 @@ INSERT INTO roles (code, name, name_kh, description, description_kh, is_system) 
     ('ADMIN',       'Administrator',       'អ្នកគ្រប់គ្រងរដ្ឋបាល',          'University administration staff',    'បុគ្គលិករដ្ឋបាលសាកលវិទ្យាល័យ',        TRUE),
     ('REGISTRAR',   'Registrar',           'ការិយាល័យសិក្សា',              'Admissions, enrollment and records', 'ការចុះឈ្មោះចូលរៀន ការសិក្សា និងឯកសារ', TRUE),
     ('ACCOUNTANT',  'Accountant',          'គណនេយ្យករ',                   'Fees, invoices and payments',        'ថ្លៃសិក្សា វិក្កយបត្រ និងការបង់ប្រាក់',   TRUE),
+    ('STAFF',       'Staff',               'បុគ្គលិក',                     'Every staff member (own leave, payslip, chat)', 'បុគ្គលិកទាំងអស់ (ច្បាប់ឈប់សម្រាក ប្រាក់ខែ ការជជែក)', TRUE),
     ('LECTURER',    'Lecturer',            'សាស្ត្រាចារ្យ',                 'Teaching staff',                     'បុគ្គលិកបង្រៀន',                     TRUE),
     ('STUDENT',     'Student',             'និស្សិត',                      'Enrolled students',                  'និស្សិតកំពុងសិក្សា',                   TRUE),
     ('GUARDIAN',    'Guardian',            'អាណាព្យាបាល',                  'Parents and guardians',              'ឪពុកម្តាយ ឬអាណាព្យាបាល',              TRUE),
@@ -29,8 +30,12 @@ CREATE TEMP TABLE role_permission_defaults (role_code VARCHAR(50), permission_co
 
 INSERT INTO role_permission_defaults (role_code, permission_code)
 SELECT d.role_code, unnest(d.codes) FROM (VALUES
+    -- STAFF: given to EVERY staff login at create (cleaner, driver, guard, accountant, lecturer ...),
+    -- so anyone who works here can request leave, see their payslip and chat
+    ('STAFF',      ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
+
     -- every staff role: chat, own leave and payslip, library, events, surveys
-    ('ADMIN',      ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
+    ('ADMIN',     ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
     ('REGISTRAR',  ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
     ('ACCOUNTANT', ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),
     ('LECTURER',   ARRAY['CHAT_SEND','CHAT_CREATE_GROUP','STAFF_LEAVE_CREATE','PAYSLIP_VIEW_OWN','RESERVATION_CREATE','EVENT_REGISTER','SURVEY_RESPOND']),

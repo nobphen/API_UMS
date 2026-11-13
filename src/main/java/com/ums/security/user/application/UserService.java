@@ -12,19 +12,19 @@ import org.springframework.modulith.NamedInterface;
 public interface UserService {
 
     /**
-     * Creates an account with a random temporary password and the given role. The user must change the
+     * Creates an account with a random temporary password and the given roles. The user must change the
      * password at first login. The temporary password is returned once and never stored in plain text.
      *
-     * @param username e.g. the student code ST2026001
-     * @param email    optional; must be free when given
-     * @param phone    optional, as typed; saved normalized (+855...); must be free when given
-     * @param userType STUDENT, STAFF, GUARDIAN...
-     * @param roleCode role given straight away, e.g. STUDENT; null = no role now (an admin gives one later)
+     * @param username  e.g. the student code ST2026001
+     * @param email     optional; must be free when given
+     * @param phone     optional, as typed; saved normalized (+855...); must be free when given
+     * @param userType  STUDENT, STAFF, GUARDIAN...
+     * @param roleCodes roles given straight away, e.g. [STUDENT] or [STAFF, LECTURER]; empty = no role now
      * @return the user id, username and the temporary password (show it once, then it is gone)
      * @throws com.ums.common.exception.BusinessException error.user.username_taken / email_taken / phone_taken;
      *                                                    error.phone.invalid
      */
-    NewAccount createAccount(String username, String email, String phone, User.UserType userType, String roleCode);
+    NewAccount createAccount(String username, String email, String phone, User.UserType userType, List<String> roleCodes);
 
     /**
      * Only the checks of createAccount, saves nothing. Call it before saving anything else (person, addresses ...),
@@ -51,17 +51,17 @@ public interface UserService {
     String useForNewStudy(Long userId);
 
     /**
-     * An existing login gets a job (e.g. a graduate hired as a lecturer): it gets the role when one is given,
+     * An existing login gets a job (e.g. a graduate hired as a lecturer): it gets the roles it does not have yet,
      * and is switched back on if it was disabled. The user type becomes STAFF (an ADMIN keeps ADMIN);
      * the roles it already has stay (a lecturer who studies keeps STUDENT too).
      *
-     * @param userId   the existing login
-     * @param roleCode the role to add, e.g. LECTURER; null = no role now (an admin gives one later)
+     * @param userId    the existing login
+     * @param roleCodes the roles to add, e.g. [STAFF, LECTURER]; empty = no role now
      * @return the username, which does not change
      * @throws com.ums.common.exception.NotFoundException error.user.not_found
      * @throws com.ums.common.exception.BusinessException error.user.locked_unlock_first when the login is LOCKED
      */
-    String useForNewJob(Long userId, String roleCode);
+    String useForNewJob(Long userId, List<String> roleCodes);
 
     /**
      * An admin (e.g. the registrar) changes the login email and phone, so "Forgot password?" and SMS login

@@ -50,6 +50,7 @@ import java.util.List;
 @Slf4j
 public class StaffServiceImpl implements StaffService {
 
+    private static final String STAFF_ROLE = "STAFF";         // role code given to EVERY staff login (own leave, payslip, chat)
     private static final String LECTURER_ROLE = "LECTURER";   // role code given to a teaching staff login
 
     private final StaffRepository staffRepository;
@@ -92,10 +93,10 @@ public class StaffServiceImpl implements StaffService {
         personAddressService.check(request.addresses());
 
         // 3. SAVE: everything is checked, so these INSERTs only fail on a real database problem ---------
-        // 3a. The login: username = staff code, a temporary password, User.UserType.STAFF, the role
-        //     Role: LECTURER / BOTH → "LECTURER"; OFFICE → no role (an admin gives one later)
+        // 3a. The login: username = staff code, a temporary password, User.UserType.STAFF, the roles
+        //     Roles: everyone → "STAFF"; LECTURER / BOTH → also "LECTURER" (an admin adds office roles later)
         UserService.NewAccount account = userService.createAccount(
-                staffCode, request.email(), request.phone(), User.UserType.STAFF, roleFor(request.staffType())
+                staffCode, request.email(), request.phone(), User.UserType.STAFF, rolesFor(request.staffType())
         );
 
         // 3b. The person, then their addresses
@@ -139,8 +140,8 @@ public class StaffServiceImpl implements StaffService {
         personAddressService.check(request.addresses());
 
         // 2. SAVE ------------------------------------------------------------
-        // 2a. Keep the same login; it also gets the job role (404 / locked login stops here, before any INSERT)
-        String username = userService.useForNewJob(userId, roleFor(request.staffType()));
+        // 2a. Keep the same login; it also gets the job roles (404 / locked login stops here, before any INSERT)
+        String username = userService.useForNewJob(userId, rolesFor(request.staffType()));
 
         // 2b. A new person only when none was on file; then the addresses (sent = updated; left out = kept)
         if (person.getId() == null) {
@@ -159,7 +160,9 @@ public class StaffServiceImpl implements StaffService {
         return new NewStaffResponse(toResponse(staff), username, null);
     }
 
-    /** One staff member by id; 404 when it does not exist or was deleted. */
+    /**
+     * One staff member by id; 404 when it does not exist or was deleted.
+     */
     @Override
     @Transactional(readOnly = true)
     public StaffResponse get(Long id) {
@@ -170,7 +173,9 @@ public class StaffServiceImpl implements StaffService {
         return toResponse(staff);
     }
 
-    /** The staff record of the logged-in user (one login = one staff row). */
+    /**
+     * The staff record of the logged-in user (one login = one staff row).
+     */
     @Override
     @Transactional(readOnly = true)
     public StaffResponse getByUser(Long userId) {
@@ -184,7 +189,9 @@ public class StaffServiceImpl implements StaffService {
         return toResponse(staff);
     }
 
-    /** One page: filters by department, type and status (null = all), searches code or name. */
+    /**
+     * One page: filters by department, type and status (null = all), searches code or name.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<StaffResponse> list(String search, Long departmentId, Staff.StaffType staffType,
@@ -197,7 +204,9 @@ public class StaffServiceImpl implements StaffService {
         return staffRepository.search(q, departmentId, staffType, status, pageable).map(this::toResponse);
     }
 
-    /** Changes the person (names, gender, dob, nationality, contact) and the job details. */
+    /**
+     * Changes the person (names, gender, dob, nationality, contact) and the job details.
+     */
     @Override
     public StaffResponse update(Long id, StaffUpdateRequest request) {
 
@@ -225,7 +234,9 @@ public class StaffServiceImpl implements StaffService {
         return toResponse(staff);
     }
 
-    /** Fixes a mistyped staff code; the login's username changes too when it was the old code. */
+    /**
+     * Fixes a mistyped staff code; the login's username changes too when it was the old code.
+     */
     @Override
     public StaffResponse changeCode(Long id, String staffCode) {
 
@@ -252,7 +263,9 @@ public class StaffServiceImpl implements StaffService {
         return toResponse(staff);
     }
 
-    /** Different status → allowed change → dean / head check → lock or unlock the login → set it. */
+    /**
+     * Different status → allowed change → dean / head check → lock or unlock the login → set it.
+     */
     @Override
     public StaffResponse changeStatus(Long id, StaffStatusRequest request, Long adminId) {
 
@@ -309,7 +322,9 @@ public class StaffServiceImpl implements StaffService {
         return toResponse(staff);
     }
 
-    /** Every status change of the staff member, newest first; 404 when the staff member does not exist. */
+    /**
+     * Every status change of the staff member, newest first; 404 when the staff member does not exist.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<StatusHistoryResponse> getStatusHistory(Long id) {
@@ -318,13 +333,24 @@ public class StaffServiceImpl implements StaffService {
         Staff staff = findStaff(id);
 
         // 2. Each history row → response
-        return staffStatusHistoryRepository.findByStaffIdOrderByChangedAtDescIdDesc(staff.getId()).stream()
-                .map(h -> new StatusHistoryResponse(h.getId(), h.getOldStatus().name(), h.getNewStatus().name(),
-                        h.getReason(), h.getChangedBy(), h.getChangedAt()))
+        return staffStatusHistoryRepository.findByStaffIdOrderByChangedAtDescIdDesc(staff.getId())
+                .stream()
+                .map(h ->
+                        new StatusHistoryResponse(
+                                h.getId(),
+                                h.getOldStatus().name(),
+                                h.getNewStatus().name(),
+                                h.getReason(),
+                                h.getChangedBy(),
+                                h.getChangedAt()
+                        )
+                )
                 .toList();
     }
 
-    /** Soft delete: only for a record made by mistake or twice. */
+    /**
+     * Soft delete: only for a record made by mistake or twice.
+     */
     @Override
     public void delete(Long id, Long adminId) {
 
@@ -365,14 +391,18 @@ public class StaffServiceImpl implements StaffService {
     /// HELPERS ------------------------------------------------------
 
     /**
-     * The role of a staff login: LECTURER and BOTH teach → LECTURER.
-     * OFFICE → null: no role now, an admin gives the office role later (REGISTRAR, ACCOUNTANT ...).
+     * The roles of a staff login. Everyone gets STAFF (cleaner, driver, guard too: own leave, payslip, chat).
+     * LECTURER and BOTH teach → also LECTURER. An admin gives the office roles later (REGISTRAR, ACCOUNTANT ...).
      */
-    private static String roleFor(Staff.StaffType staffType) {
-        return staffType == Staff.StaffType.OFFICE ? null : LECTURER_ROLE;
+    private static List<String> rolesFor(Staff.StaffType staffType) {
+        return staffType == Staff.StaffType.OFFICE
+                ? List.of(STAFF_ROLE)
+                : List.of(STAFF_ROLE, LECTURER_ROLE);
     }
 
-    /** Staff + person → one response (StaffResponse has no addresses). */
+    /**
+     * Staff + person → one response (StaffResponse has no addresses).
+     */
     private StaffResponse toResponse(Staff staff) {
         return staffMapper.toResponse(staff);
     }
@@ -398,13 +428,17 @@ public class StaffServiceImpl implements StaffService {
         }
     }
 
-    /** Whether the person still has another record (not deleted): a student row or a guardian row. */
+    /**
+     * Whether the person still has another record (not deleted): a student row or a guardian row.
+     */
     private boolean hasOtherRecord(Long personId) {
         return studentRepository.existsByPerson_IdAndDeletedAtIsNull(personId)
                 || guardianRepository.existsByPerson_IdAndDeletedAtIsNull(personId);
     }
 
-    /** The staff member, or 404 when it does not exist or was deleted (deletedAt set). */
+    /**
+     * The staff member, or 404 when it does not exist or was deleted (deletedAt set).
+     */
     private Staff findStaff(Long id) {
         return staffRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new NotFoundException("error.staff.not_found"));
@@ -425,7 +459,9 @@ public class StaffServiceImpl implements StaffService {
         };
     }
 
-    /** Whether the status means the person no longer works here (RESIGNED, TERMINATED, RETIRED): the login is locked. */
+    /**
+     * Whether the status means the person no longer works here (RESIGNED, TERMINATED, RETIRED): the login is locked.
+     */
     private static boolean isGone(Staff.Status status) {
         return status == Staff.Status.RESIGNED || status == Staff.Status.TERMINATED || status == Staff.Status.RETIRED;
     }
@@ -442,7 +478,9 @@ public class StaffServiceImpl implements StaffService {
         return staffCode;
     }
 
-    /** The text without spaces around it, or null when it is empty (an empty reason is saved as NULL). */
+    /**
+     * The text without spaces around it, or null when it is empty (an empty reason is saved as NULL).
+     */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
