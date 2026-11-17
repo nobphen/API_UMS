@@ -20,4 +20,23 @@ public interface PersonService {
      *                                                    error.person.national_id_taken (another person has it)
      */
     String requireValidNationalId(String nationalId, String nationalityCode, Long personId);
+
+    /**
+     * Phone is optional; when given no other person (not deleted) may have it, so a call always reaches one person.
+     *
+     * @param phone    the phone as saved (+855…, already normalized by Person.setPhone); null = no phone
+     * @param personId the person being changed (its own phone is allowed); null for a new person
+     * @throws com.ums.common.exception.BusinessException error.person.phone_taken (another person has it)
+     */
+    void requireFreePhone(String phone, Long personId);
+
+    /**
+     * Email is optional; when given no other person (not deleted) may have it, ignoring case
+     * (Sophea@gmail.com = sophea@gmail.com), so an email always reaches one person.
+     *
+     * @param email    the email from the form; null or empty = no email
+     * @param personId the person being changed (its own email is allowed); null for a new person
+     * @throws com.ums.common.exception.BusinessException error.person.email_taken (another person has it)
+     */
+    void requireFreeEmail(String email, Long personId);
 }

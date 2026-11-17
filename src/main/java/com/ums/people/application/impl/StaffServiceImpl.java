@@ -1,5 +1,6 @@
 package com.ums.people.application.impl;
 
+import com.ums.common.util.PhoneNumbers;
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
 import com.ums.people.api.dto.NewStaffResponse;
@@ -213,11 +214,18 @@ public class StaffServiceImpl implements StaffService {
         // 1. The staff member, or 404
         Staff staff = findStaff(id);
 
-        // 2. The person part: every field from the form (an empty field clears it)
+        // 2. CHECKS FIRST, before the person changes: a query flushes a changed loaded entity,
+        //    so a taken phone would hit the DB index (409) before our check (400)
         Person person = staff.getPerson();
+        String nationalityCode = countryService.require(request.nationalityCode()).getCode();   // empty = KH
+        String nationalId = personService.requireValidNationalId(request.nationalId(), nationalityCode, person.getId());
+        personService.requireFreePhone(PhoneNumbers.normalizeForSave(request.phone()), person.getId());   // no other person has this phone
+        personService.requireFreeEmail(request.email(), person.getId());   // no other person has this email
+
+        // 2a. The person part: every field from the form (an empty field clears it)
         staffMapper.updatePerson(request, person);
-        person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());   // empty = KH
-        person.setNationalId(personService.requireValidNationalId(request.nationalId(), person.getNationalityCode(), person.getId()));
+        person.setNationalityCode(nationalityCode);
+        person.setNationalId(nationalId);
 
         // 3. The login gets the same email and phone, so "Forgot password?" and SMS login use the new ones
         if (staff.getUserId() != null) {
@@ -410,11 +418,14 @@ public class StaffServiceImpl implements StaffService {
     /**
      * A new person from the form, checked but NOT saved (the caller saves it after all other checks).
      * An empty nationality means Cambodian, an unknown code is refused.
+     * personId = null: a new person has no id yet, so ANY person with this national ID means "taken".
      */
     private Person buildPerson(StaffRequest request) {
         Person person = staffMapper.toPerson(request);
         person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());
         person.setNationalId(personService.requireValidNationalId(request.nationalId(), person.getNationalityCode(), null));
+        personService.requireFreePhone(person.getPhone(), null);   // no person has this phone yet
+        personService.requireFreeEmail(person.getEmail(), null);   // no person has this email yet
         return person;
     }
 

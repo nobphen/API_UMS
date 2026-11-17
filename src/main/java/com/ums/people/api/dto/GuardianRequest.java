@@ -1,15 +1,16 @@
 package com.ums.people.api.dto;
 
+import com.ums.common.util.Emails;
 import com.ums.people.domain.Person;
 import jakarta.validation.Valid;
-import com.ums.common.util.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Data to add a guardian (parent): person details, addresses and occupation. Not used yet. */
+/** Data to add a guardian (parent): person details, addresses and occupation. Used by POST /guardians. */
 public record GuardianRequest(
         @NotBlank @Size(max = 80) String firstName,
         @NotBlank @Size(max = 80) String lastName,
@@ -17,6 +18,7 @@ public record GuardianRequest(
         @Size(max = 80) String lastNameKh,
         Person.Gender gender,
         LocalDate dob,
+        @Pattern(regexp = "^[A-Z]{2}$", message = "{validation.country_code}") String nationalityCode,   // empty = KH
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
         @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150) String email,

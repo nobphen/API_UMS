@@ -27,7 +27,7 @@ public interface StaffService {
      * @throws com.ums.common.exception.BusinessException error.staff.code_exists when the code is taken;
      *                                                    error.staff.already_staff when the login is already staff;
      *                                                    error.country.unknown for a bad nationality;
-     *                                                    error.person.national_id_* for a bad or taken national ID;
+     *                                                    error.person.national_id_* for a bad or taken national ID; error.person.phone_taken; error.person.email_taken;
      *                                                    error.user.username_taken / email_taken / phone_taken for the login;
      *                                                    error.address.* for a wrong address
      * @throws com.ums.common.exception.NotFoundException error.department.not_found for an unknown department;
@@ -79,7 +79,7 @@ public interface StaffService {
      * @throws com.ums.common.exception.BusinessException error.country.unknown for a bad nationality;
      *                                                    error.user.email_taken / error.user.phone_taken when
      *                                                    another login already has them;
-     *                                                    error.person.national_id_invalid(_kh) / national_id_taken
+     *                                                    error.person.national_id_invalid(_kh) / national_id_taken / phone_taken
      */
     StaffResponse update(Long id, StaffUpdateRequest request);
 

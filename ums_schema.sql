@@ -226,6 +226,13 @@ CREATE TABLE persons (
     deleted_at     TIMESTAMPTZ
 );
 
+-- One phone = one person (not counting deleted ones), so a call always reaches the right person.
+CREATE UNIQUE INDEX ux_persons_phone ON persons (phone) WHERE deleted_at IS NULL;
+-- One email = one person (not counting deleted ones), ignoring case: Sophea@gmail.com = sophea@gmail.com.
+CREATE UNIQUE INDEX ux_persons_email ON persons (lower(email)) WHERE deleted_at IS NULL;
+-- One national ID = one person (not counting deleted ones); same rule as PersonService.requireValidNationalId.
+CREATE UNIQUE INDEX ux_persons_national_id ON persons (national_id) WHERE deleted_at IS NULL;
+
 -- Cambodia's administrative areas, one table for all four levels: province → district → commune → village.
 -- Seeded by V4__seed_geo_areas.sql; admins keep it up to date (new sub-decrees, renamed or merged areas).
 CREATE TABLE geo_areas (
@@ -785,6 +792,7 @@ CREATE TABLE messages (
 CREATE INDEX ix_messages_conv ON messages (conversation_id, id DESC);
 
 CREATE TABLE conversation_participants (
+    id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     conversation_id      BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     user_id              BIGINT NOT NULL REFERENCES users(id),
     role                 VARCHAR(10) NOT NULL DEFAULT 'MEMBER' CHECK (role IN ('MEMBER','ADMIN')),
@@ -792,7 +800,8 @@ CREATE TABLE conversation_participants (
     is_muted             BOOLEAN NOT NULL DEFAULT FALSE,
     joined_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     left_at              TIMESTAMPTZ,
-    PRIMARY KEY (conversation_id, user_id)
+    -- one row per member of a chat (a user is in a conversation only once)
+    UNIQUE (conversation_id, user_id)
 );
 CREATE INDEX ix_participants_user ON conversation_participants (user_id);
 

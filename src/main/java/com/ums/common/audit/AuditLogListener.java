@@ -69,7 +69,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         log.debug("[audit] onPostInsert(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
-        publish(Action.CREATE, event.getEntity(), event.getId(), null, toJson(names, event.getState(), null));
+        publish(Action.CREATE, event.getEntity(), event.getId(), null, toJson(event.getId(), names, event.getState(), null));
     }
 
     /** steps: skips entities without @Auditable → keeps only the changed simple fields → sends an UPDATE event (old and new values); skips when no simple field changed. */
@@ -79,8 +79,8 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
         int[] changed = event.getDirtyProperties();
-        String oldValue = event.getOldState() == null ? null : toJson(names, event.getOldState(), changed);
-        String newValue = toJson(names, event.getState(), changed);
+        String oldValue = event.getOldState() == null ? null : toJson(event.getId(), names, event.getOldState(), changed);
+        String newValue = toJson(event.getId(), names, event.getState(), changed);
         if (newValue == null) {   // only links or hidden fields changed
             log.debug("[audit] onPostUpdate(): no simple field changed, skip");
             return;
@@ -94,7 +94,7 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
         log.debug("[audit] onPostDelete(): {} id={}", event.getEntity().getClass().getSimpleName(), event.getId());
         if (!isAuditable(event.getEntity())) return;
         String[] names = event.getPersister().getPropertyNames();
-        publish(Action.DELETE, event.getEntity(), event.getId(), toJson(names, event.getDeletedState(), null), null);
+        publish(Action.DELETE, event.getEntity(), event.getId(), toJson(event.getId(), names, event.getDeletedState(), null), null);
     }
 
     /**
@@ -126,17 +126,41 @@ public class AuditLogListener implements PostInsertEventListener, PostUpdateEven
 
     /**
      * JSON of the simple fields; only the fields at {@code indexes} when given. Null when nothing is left.
+     * A composite key (e.g. StudentGuardian.Id) does not fit audit_logs.entity_id (one number), so its parts
+     * go first in the JSON: {"studentId": 5, "guardianId": 2, "relationship": ...}. Then the history can still
+     * tell which row it was, even after a hard delete.
      */
-    private String toJson(String[] names, Object[] values, int[] indexes) {
+    private String toJson(Object id, String[] names, Object[] values, int[] indexes) {
         Map<String, Object> fields = new LinkedHashMap<>();
         if (indexes == null) {
             for (int i = 0; i < names.length; i++) addField(fields, names[i], values[i]);
         } else {
             for (int i : indexes) addField(fields, names[i], values[i]);
         }
-        String json = fields.isEmpty() ? null : jsonMapper.writeValueAsString(fields);
+        if (fields.isEmpty()) {   // nothing simple changed: keep null, so onPostUpdate can skip
+            log.debug("[audit] toJson(): null");
+            return null;
+        }
+        Map<String, Object> withKey = new LinkedHashMap<>(compositeKeyFields(id));
+        withKey.putAll(fields);
+        String json = jsonMapper.writeValueAsString(withKey);
         log.debug("[audit] toJson(): {}", json);
         return json;
+    }
+
+    /**
+     * steps: a normal id (a number) or no id → nothing (it is saved in entity_id) →
+     * a composite key → its simple fields, e.g. StudentGuardian.Id(5, 2) → {studentId=5, guardianId=2}.
+     */
+    private Map<String, Object> compositeKeyFields(Object id) {
+        Map<String, Object> keyFields = new LinkedHashMap<>();
+        if (id == null || id instanceof Number) {
+            return keyFields;
+        }
+        Map<?, ?> parts = jsonMapper.convertValue(id, Map.class);   // reads the key's getters
+        parts.forEach((name, value) -> addField(keyFields, String.valueOf(name), value));
+        log.debug("[audit] compositeKeyFields(): {} -> {}", id.getClass().getSimpleName(), keyFields);
+        return keyFields;
     }
 
     /** steps: skips hidden names (password, token, ...) → keeps the value only if it is simple (text, number, boolean, enum, date, UUID). */

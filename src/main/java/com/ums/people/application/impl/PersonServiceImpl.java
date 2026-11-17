@@ -40,4 +40,39 @@ public class PersonServiceImpl implements PersonService {
         }
         return cleaned;
     }
+
+    /** No phone → nothing to check; otherwise must be free (its own person not counted). */
+    @Override
+    @Transactional(readOnly = true)
+    public void requireFreePhone(String phone, Long personId) {
+        if (phone == null || phone.isBlank()) {
+            return;   // optional
+        }
+
+        // 1. One phone = one person (father and mother each need their own number)
+        boolean taken = personId == null
+                ? personRepository.existsByPhoneAndDeletedAtIsNull(phone)
+                : personRepository.existsByPhoneAndDeletedAtIsNullAndIdNot(phone, personId);
+        if (taken) {
+            throw new BusinessException("error.person.phone_taken", phone);
+        }
+    }
+
+    /** No email → nothing to check; otherwise must be free, ignoring case (its own person not counted). */
+    @Override
+    @Transactional(readOnly = true)
+    public void requireFreeEmail(String email, Long personId) {
+        if (email == null || email.isBlank()) {
+            return;   // optional
+        }
+
+        // 1. One email = one person (father and mother each need their own email)
+        String cleaned = email.trim();
+        boolean taken = personId == null
+                ? personRepository.existsByEmailIgnoreCaseAndDeletedAtIsNull(cleaned)
+                : personRepository.existsByEmailIgnoreCaseAndDeletedAtIsNullAndIdNot(cleaned, personId);
+        if (taken) {
+            throw new BusinessException("error.person.email_taken", cleaned);
+        }
+    }
 }

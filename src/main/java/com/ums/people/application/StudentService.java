@@ -1,6 +1,5 @@
 package com.ums.people.application;
 
-import com.ums.people.api.dto.GuardianResponse;
 import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.PromoteStudentsRequest;
@@ -29,7 +28,7 @@ public interface StudentService {
      *                                                    error.student.already_in_program (existing login);
      *                                                    error.student.batch_not_in_program for a wrong batch;
      *                                                    error.country.unknown for a bad nationality;
-     *                                                    error.person.national_id_* for a bad or taken national ID;
+     *                                                    error.person.national_id_* for a bad or taken national ID; error.person.phone_taken; error.person.email_taken;
      *                                                    error.user.username_taken / email_taken / phone_taken for the login;
      *                                                    error.address.* for a wrong address
      * @throws com.ums.common.exception.NotFoundException error.program.not_found for an unknown program;
@@ -131,7 +130,7 @@ public interface StudentService {
      * @throws com.ums.common.exception.BusinessException error.country.unknown for a bad nationality;
      *                                                    error.user.email_taken / error.user.phone_taken when
      *                                                    another login already has them;
-     *                                                    error.person.national_id_invalid(_kh) / national_id_taken;
+     *                                                    error.person.national_id_invalid(_kh) / national_id_taken / phone_taken;
      *                                                    error.student.batch_not_in_program for a wrong batch
      */
     StudentResponse update(Long id, StudentUpdateRequest request);
@@ -174,13 +173,4 @@ public interface StudentService {
      *                                                    error.user.lock_self when the admin deletes their own record
      */
     void delete(Long id, Long adminId);
-
-    /**
-     * The student's guardians (parents...), primary first. Write it after the Guardian feature.
-     *
-     * @param id student id
-     * @return the guardians; empty when none are linked
-     * @throws com.ums.common.exception.NotFoundException error.student.not_found when it does not exist or was deleted
-     */
-    List<GuardianResponse> getGuardians(Long id);
 }

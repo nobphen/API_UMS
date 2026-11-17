@@ -1,5 +1,6 @@
 package com.ums.people.domain;
 
+import com.ums.common.audit.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /** Links a student to a guardian (parent), with the relationship and whether this guardian is contacted first. */
+@Auditable   // link / update / unlink go to audit_logs; the key (studentId, guardianId) is in the JSON
 @Getter
 @Setter
 @Entity

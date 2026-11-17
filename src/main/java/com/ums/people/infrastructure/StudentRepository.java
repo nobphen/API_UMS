@@ -3,6 +3,7 @@ package com.ums.people.infrastructure;
 import com.ums.people.domain.Student;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,28 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Database access for student records (table students). */
 public interface StudentRepository extends JpaRepository<Student, Long> {
+
+    /**
+     * One student that is not deleted. Used when the student is needed (get, update, delete ...).
+     * <pre>
+     * SELECT s.* FROM students s WHERE s.id = ? AND s.deleted_at IS NULL
+     * </pre>
+     *
+     * @param id student id
+     * @return the student, or empty when it does not exist or was deleted
+     */
+    Optional<Student> findByIdAndDeletedAtIsNull(Long id);
+
+    /**
+     * Whether a student exists and is not deleted. Used when only a check is needed (nothing loaded).
+     * <pre>
+     * SELECT s.id FROM students s WHERE s.id = ? AND s.deleted_at IS NULL FETCH FIRST 1 ROWS ONLY
+     * </pre>
+     *
+     * @param id student id
+     * @return true when the student exists and is not deleted
+     */
+    boolean existsByIdAndDeletedAtIsNull(Long id);
 
     /**
      * Whether a student already uses this student code, ignoring case.

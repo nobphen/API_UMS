@@ -10,11 +10,15 @@ import com.ums.people.api.dto.PromoteStudentsRequest;
 import com.ums.people.api.dto.PromoteStudentsResponse;
 import com.ums.people.api.dto.StatusHistoryResponse;
 import com.ums.people.api.dto.StudentCodeRequest;
+import com.ums.people.api.dto.StudentGuardianRequest;
+import com.ums.people.api.dto.StudentGuardianResponse;
+import com.ums.people.api.dto.StudentGuardianUpdateRequest;
 import com.ums.people.api.dto.StudentRequest;
 import com.ums.people.api.dto.StudentResponse;
 import com.ums.people.api.dto.StudentStatusRequest;
 import com.ums.people.api.dto.StudentUpdateRequest;
 import com.ums.people.api.dto.YearLevelRequest;
+import com.ums.people.application.StudentGuardianService;
 import com.ums.people.application.StudentService;
 import com.ums.people.domain.Student;
 import jakarta.validation.Valid;
@@ -39,6 +43,7 @@ import org.springframework.web.bind.annotation.*;
 public class StudentController {
 
     private final StudentService studentService;
+    private final StudentGuardianService studentGuardianService;   // /students/{id}/guardians
 
     /**
      * Adds a student: person + addresses + login + student record. 201.
@@ -159,6 +164,54 @@ public class StudentController {
     @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
     public ApiResponse<StudentResponse> changeCode(@PathVariable Long id, @Valid @RequestBody StudentCodeRequest request) {
         return ApiResponse.ok(studentService.changeCode(id, request.studentCode()));
+    }
+
+    /// GUARDIANS OF A STUDENT (StudentGuardianService) ----------------------------------
+
+    /**
+     * Links a guardian (made before with POST /guardians) to the student. 201.
+     * The student's first guardian is always primary; a new primary takes the ★ from the old one.
+     * <pre>POST /api/v1/students/5/guardians  {"guardianId": 1, "relationship": "FATHER", "primary": false}</pre>
+     */
+    @PostMapping("/{id}/guardians")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
+    public ApiResponse<StudentGuardianResponse> linkGuardian(@PathVariable Long id,
+                                                             @Valid @RequestBody StudentGuardianRequest request) {
+        return ApiResponse.ok(studentGuardianService.link(id, request));
+    }
+
+    /**
+     * The student's guardians, primary first. A List (no pages): a student has only a few guardians.
+     * <pre>GET /api/v1/students/5/guardians</pre>
+     */
+    @GetMapping("/{id}/guardians")
+    @RequirePermission(PeoplePermissions.STUDENT_VIEW)
+    public ApiResponse<List<StudentGuardianResponse>> listGuardians(@PathVariable Long id) {
+        return ApiResponse.ok(studentGuardianService.list(id));
+    }
+
+    /**
+     * Changes the relationship, or makes this guardian the primary one ("primary": false keeps the ★ as it is).
+     * <pre>PUT /api/v1/students/5/guardians/2  {"relationship": "MOTHER", "primary": true}</pre>
+     */
+    @PutMapping("/{id}/guardians/{guardianId}")
+    @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
+    public ApiResponse<StudentGuardianResponse> updateGuardian(@PathVariable Long id, @PathVariable Long guardianId,
+                                                               @Valid @RequestBody StudentGuardianUpdateRequest request) {
+        return ApiResponse.ok(studentGuardianService.update(id, guardianId, request));
+    }
+
+    /**
+     * Removes the link only (hard delete); the student and the guardian stay.
+     * When it was the primary, the next guardian gets the ★.
+     * <pre>DELETE /api/v1/students/5/guardians/2</pre>
+     */
+    @DeleteMapping("/{id}/guardians/{guardianId}")
+    @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
+    public ApiResponse<Void> unlinkGuardian(@PathVariable Long id, @PathVariable Long guardianId) {
+        studentGuardianService.unlink(id, guardianId);
+        return ApiResponse.deleted();
     }
 
     /**
