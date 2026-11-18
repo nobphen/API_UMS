@@ -51,4 +51,15 @@ public interface PersonAddressService {
      * @throws com.ums.common.exception.NotFoundException error.person.not_found when the person does not exist
      */
     List<AddressResponse> replaceAll(Long personId, List<AddressRequest> addresses);
+
+    /**
+     * Replaces ONE address of the person (the one with the same type); the other types stay as they are.
+     * Used by "my profile": a person changes their CURRENT address, never their birth place.
+     *
+     * @param person  the person, already loaded
+     * @param address the new address; its type says which one is replaced
+     * @throws com.ums.common.exception.BusinessException the same address errors as replaceAll
+     * @throws com.ums.common.exception.NotFoundException error.geo.not_found for an unknown areaId
+     */
+    void replaceOne(Person person, AddressRequest address);
 }

@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.exc.InputCoercionException;
@@ -163,6 +165,18 @@ public class GlobalExceptionHandler {
                     Map.of(field, text("error.invalid_value"))));
         }
         return ResponseEntity.badRequest().body(ApiResponse.error(text("error.bad_request_body")));
+    }
+
+    /** An upload bigger than spring.servlet.multipart.max-file-size (10 MB): Spring stops it before the controller. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(text("error.file.upload_too_large")));
+    }
+
+    /** A form-data request without the file field, e.g. the photo sent as "image" instead of "file". */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart(MissingServletRequestPartException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(text("error.file.part_missing", ex.getRequestPartName())));
     }
 
     /** e.g. DELETE on an API that only has GET. */

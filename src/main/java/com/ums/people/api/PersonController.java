@@ -5,20 +5,29 @@ import com.ums.common.security.RequirePermission;
 import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.AddressRequest;
 import com.ums.people.api.dto.AddressResponse;
+import com.ums.people.api.dto.MyProfileUpdateRequest;
+import com.ums.people.api.dto.PersonResponse;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.PersonService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Data shared by every kind of person (student, staff, guardian). For now only the addresses.
+ * Data shared by every kind of person (student, staff, guardian): the addresses, and "my profile" (/me).
  * personId is the id in persons, not the student or staff id (StudentResponse has personId).
  */
 @RestController
@@ -51,5 +60,76 @@ public class PersonController {
     public ApiResponse<List<AddressResponse>> replaceAddresses(@PathVariable Long personId,
                                                                @Valid @RequestBody List<@Valid AddressRequest> addresses) {
         return ApiResponse.ok(personAddressService.replaceAll(personId, addresses));
+    }
+
+    /// MY PROFILE: the logged-in person (student, staff or guardian) ----------------
+
+    /**
+     * My own profile: names, contact, addresses. No id in the URL: the user id comes from the token
+     * (jwt.getSubject()), so nobody can read someone else's profile. No permission: every logged-in person may.
+     * <pre>GET /api/v1/persons/me</pre>
+     */
+    @GetMapping("/me")
+    public ApiResponse<PersonResponse> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+        return ApiResponse.ok(personService.getMyProfile(userId(jwt)));
+    }
+
+    /**
+     * I change my own phone, email and current address (names, national ID ... only an admin changes).
+     * <pre>PUT /api/v1/persons/me  {"phone": "096 953 0336", "email": "dara@gmail.com",
+     *                              "currentAddress": {"type": "CURRENT", "areaId": 1890, "houseNo": "12A"}}</pre>
+     */
+    @PutMapping("/me")
+    public ApiResponse<PersonResponse> updateMyProfile(@Valid @RequestBody MyProfileUpdateRequest request,
+                                                       @AuthenticationPrincipal Jwt jwt) {
+        return ApiResponse.ok(personService.updateMyProfile(userId(jwt), request));
+    }
+
+    /// PHOTO: form-data with one field "file" (JPG or PNG, max 2 MB) ----------------
+
+    /**
+     * I change my own photo.
+     * <pre>PUT /api/v1/persons/me/photo   form-data: file = dara.jpg</pre>
+     */
+    @PutMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<PersonResponse> updateMyPhoto(@RequestPart("file") MultipartFile file,
+                                                     @AuthenticationPrincipal Jwt jwt) {
+        return ApiResponse.ok(personService.updateMyPhoto(userId(jwt), file));
+    }
+
+    /**
+     * I remove my own photo.
+     * <pre>DELETE /api/v1/persons/me/photo</pre>
+     */
+    @DeleteMapping("/me/photo")
+    public ApiResponse<PersonResponse> deleteMyPhoto(@AuthenticationPrincipal Jwt jwt) {
+        return ApiResponse.ok(personService.deleteMyPhoto(userId(jwt)));
+    }
+
+    /**
+     * An admin changes the photo of any person (personId from StudentResponse / StaffResponse).
+     * <pre>PUT /api/v1/persons/7/photo   form-data: file = dara.jpg</pre>
+     */
+    @PutMapping(value = "/{personId}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequirePermission({PeoplePermissions.STUDENT_UPDATE, PeoplePermissions.STAFF_MANAGE, PeoplePermissions.GUARDIAN_MANAGE})
+    public ApiResponse<PersonResponse> updatePhoto(@PathVariable Long personId, @RequestPart("file") MultipartFile file) {
+        return ApiResponse.ok(personService.updatePhoto(personId, file));
+    }
+
+    /**
+     * An admin removes the photo of a person.
+     * <pre>DELETE /api/v1/persons/7/photo</pre>
+     */
+    @DeleteMapping("/{personId}/photo")
+    @RequirePermission({PeoplePermissions.STUDENT_UPDATE, PeoplePermissions.STAFF_MANAGE, PeoplePermissions.GUARDIAN_MANAGE})
+    public ApiResponse<PersonResponse> deletePhoto(@PathVariable Long personId) {
+        return ApiResponse.ok(personService.deletePhoto(personId));
+    }
+
+    /// HELPERS ------------------------------------------------------
+
+    /** The login's user id from the token ("sub" = users.id). */
+    private static Long userId(Jwt jwt) {
+        return Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
     }
 }

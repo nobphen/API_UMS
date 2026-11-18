@@ -10,7 +10,10 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Person details (names, birth date, contact, addresses) sent by the client. Not used yet. */
+/**
+ * Person details (names, birth date, contact, addresses) sent by the client. Not used yet.
+ * No photoUrl: the photo only comes from PUT /persons/{personId}/photo (checked and cleaned there).
+ */
 public record PersonRequest(
         @NotBlank @Size(max = 80) String firstName,
         @NotBlank @Size(max = 80) String lastName,
@@ -22,6 +25,5 @@ public record PersonRequest(
         @Size(max = 50) String nationalId,
         @Size(max = 30) String phone,
         @Email(regexp = Emails.REGEX, message = "{validation.email}") @Size(max = 150) String email,
-        @Valid List<AddressRequest> addresses,   // birth place, permanent and current address
-        @Size(max = 500) String photoUrl) {
+        @Valid List<AddressRequest> addresses) {   // birth place, permanent and current address
 }

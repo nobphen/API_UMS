@@ -1,13 +1,14 @@
 package com.ums.people.api.dto;
 
 import com.ums.common.response.PhoneDisplay;
+import com.ums.common.storage.FileUrl;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import java.time.LocalDate;
 
 /**
  * A staff member (person details + job details) sent back to the client. userId is null when there is no login.
- * personId is for the person endpoints: PUT /persons/{personId}/addresses (and the photo later).
+ * personId is for the person endpoints: PUT /persons/{personId}/addresses and PUT /persons/{personId}/photo.
  */
 public record StaffResponse(
         Long id,
@@ -21,7 +22,7 @@ public record StaffResponse(
         LocalDate dob,
         @PhoneDisplay String phone,
         String email,
-        String photoUrl,
+        @FileUrl String photoUrl,
         Long departmentId,
         String position,
         String positionKh,

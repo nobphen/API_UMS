@@ -20,3 +20,7 @@ ums:
     log-code: true   # no SMS gateway locally: the login code is written to the log instead
   email-verify:
     log-code: true   # no mail server locally: the verification code is written to the log instead
+  storage:
+    s3:              # the RustFS container of docker-compose.yml (same keys as there); production sets S3_ACCESS_KEY / S3_SECRET_KEY
+      access-key: ${S3_ACCESS_KEY:umsadmin}
+      secret-key: ${S3_SECRET_KEY:umsadmin123}

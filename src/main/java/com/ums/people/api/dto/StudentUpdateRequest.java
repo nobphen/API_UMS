@@ -11,7 +11,7 @@ import java.time.LocalDate;
 /**
  * Changes a student's personal details and batch. Not here: studentCode (it is the username), programId
  * (another program = POST /students/{id}/programs), yearLevel (PUT /{id}/year-level), status (POST /{id}/status),
- * addresses (PUT /persons/{personId}/addresses), photo (later PUT /persons/{personId}/photo, so this update
+ * addresses (PUT /persons/{personId}/addresses), photo (PUT /persons/{personId}/photo, so this update
  * can never wipe it).
  */
 public record StudentUpdateRequest(

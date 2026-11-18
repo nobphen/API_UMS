@@ -11,7 +11,7 @@ import java.time.LocalDate;
 /**
  * Changes a guardian's personal details and occupation. Used by PUT /guardians/{id}.
  * Not here: addresses (PUT /persons/{personId}/addresses),
- * photo (later PUT /persons/{personId}/photo, so this update can never wipe it).
+ * photo (PUT /persons/{personId}/photo, so this update can never wipe it).
  */
 public record GuardianUpdateRequest(
         @NotBlank @Size(max = 80) String firstName,

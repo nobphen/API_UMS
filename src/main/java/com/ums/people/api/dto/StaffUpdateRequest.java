@@ -13,7 +13,7 @@ import java.time.LocalDate;
 /**
  * Changes a staff member's personal details and job details. Not here: staffCode (it is the username),
  * existingUserId (only for create), status (POST /staff/{id}/status), addresses (PUT /persons/{personId}/addresses),
- * photo (later PUT /persons/{personId}/photo, so this update can never wipe it).
+ * photo (PUT /persons/{personId}/photo, so this update can never wipe it).
  */
 public record StaffUpdateRequest(
         @NotBlank @Size(max = 80) String firstName,

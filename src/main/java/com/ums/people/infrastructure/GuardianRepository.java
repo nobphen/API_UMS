@@ -36,6 +36,18 @@ public interface GuardianRepository extends JpaRepository<Guardian, Long> {
     Optional<Guardian> findByIdAndDeletedAtIsNull(Long id);
 
     /**
+     * The guardian of a login, not deleted. Used by "my profile" to find the logged-in person.
+     * (Guardians have no login yet, so this is empty for now; ready for the parent app.)
+     * <pre>
+     * SELECT g.* FROM guardians g WHERE g.user_id = ? AND g.deleted_at IS NULL
+     * </pre>
+     *
+     * @param userId id of the login (users.id)
+     * @return the guardian, or empty when the login is not a guardian
+     */
+    Optional<Guardian> findByUserIdAndDeletedAtIsNull(Long userId);
+
+    /**
      * Guardians for the list page, skipping deleted ones.
      * q filters by name, English or Khmer, or phone (empty q = all).
      * Sorting and page size come from the Pageable (?page=1&size=20&sort=person.lastName,asc).

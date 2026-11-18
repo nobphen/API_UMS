@@ -15,12 +15,14 @@ import com.ums.people.infrastructure.CountryRepository;
 import com.ums.people.infrastructure.GeoAreaRepository;
 import com.ums.people.infrastructure.PersonAddressRepository;
 import com.ums.people.infrastructure.PersonRepository;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.stereotype.Service;
@@ -36,7 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PersonAddressServiceImpl implements PersonAddressService {
 
-    /** How Cambodians write these units in English addresses. */
+    /**
+     * How Cambodians write these units in English addresses.
+     */
     private static final Map<String, String> ENGLISH_UNIT = Map.of("Quarter", "Sangkat", "Section", "Khan", "Capital", "");
 
     private final PersonAddressRepository personAddressRepository;
@@ -46,7 +50,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
     private final CountryService countryService;
     private final GeoAreaMapper geoAreaMapper;
 
-    /** The person's address rows, each turned into a response with the full Khmer and English text. */
+    /**
+     * The person's address rows, each turned into a response with the full Khmer and English text.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<AddressResponse> getByPerson(Long personId) {
@@ -55,7 +61,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
                 .toList();
     }
 
-    /** Checks all new addresses first, then deletes the old rows and inserts the new ones. */
+    /**
+     * Checks all new addresses first, then deletes the old rows and inserts the new ones.
+     */
     @Override
     public void replaceAll(Person person, List<AddressRequest> addresses) {
         if (addresses == null) {
@@ -71,7 +79,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         personAddressRepository.saveAll(rows);
     }
 
-    /** For PUT /persons/{personId}/addresses: find the person (404), replace, then read the addresses back. */
+    /**
+     * For PUT /persons/{personId}/addresses: find the person (404), replace, then read the addresses back.
+     */
     @Override
     public List<AddressResponse> replaceAll(Long personId, List<AddressRequest> addresses) {
         Person person = personRepository.findById(personId).orElseThrow(() -> new NotFoundException("error.person.not_found"));
@@ -79,7 +89,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         return getByPerson(personId);
     }
 
-    /** The same checks as replaceAll, without a person and without saving: lets a new person be checked before any INSERT. */
+    /**
+     * The same checks as replaceAll, without a person and without saving: lets a new person be checked before any INSERT.
+     */
     @Override
     public void check(List<AddressRequest> addresses) {
         if (addresses != null) {
@@ -87,9 +99,30 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         }
     }
 
+    /**
+     * Check the new address → delete the old one of the same type → insert the new one. Other types untouched.
+     */
+    @Override
+    public void replaceOne(Person person, AddressRequest address) {
+
+        // 1. Check and build the new row first (same checks as replaceAll), so a bad address saves nothing
+        //    build() takes a list → wrap the one address in List.of(...), take the only row back with getFirst()
+        PersonAddress row = build(person, List.of(address)).getFirst();
+
+        // 2. DELETE the old address of this type, if there is one (Optional: empty = nothing to delete)
+        personAddressRepository.findByPerson_IdAndType(person.getId(), address.type()).ifPresent(personAddressRepository::delete);
+
+        personAddressRepository.flush();   // free (person, type) before the new row goes in (UNIQUE)
+
+        // 3. INSERT the new one
+        personAddressRepository.save(row);
+    }
+
     /// HELPERS ------------------------------------------------------
 
-    /** Every request → one row after its checks; a type sent twice is refused. Saves nothing. */
+    /**
+     * Every request → one row after its checks; a type sent twice is refused. Saves nothing.
+     */
     private List<PersonAddress> build(Person person, List<AddressRequest> addresses) {
         Set<PersonAddress.Type> seen = EnumSet.noneOf(PersonAddress.Type.class);
         List<PersonAddress> rows = new ArrayList<>();
@@ -108,7 +141,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
      * areaId only in Cambodia, every area still active, and either an areaId or an addressLine.
      */
     private PersonAddress toEntity(Person person, AddressRequest request) {
+
         PersonAddress address = new PersonAddress();
+
         address.setPerson(person);
         address.setType(request.type());
         address.setHouseNo(blankToNull(request.houseNo()));
@@ -145,10 +180,13 @@ public class PersonAddressServiceImpl implements PersonAddressService {
         } else if (address.getAddressLine() == null) {   // no area and no text: nothing to save
             throw new BusinessException("error.address.empty");
         }
+
         return address;
     }
 
-    /** The area, or 404 when the areaId does not exist. */
+    /**
+     * The area, or 404 when the areaId does not exist.
+     */
     private GeoArea findArea(Long id) {
         return geoAreaRepository.findById(id).orElseThrow(() -> new NotFoundException("error.geo.not_found"));
     }
@@ -163,7 +201,7 @@ public class PersonAddressServiceImpl implements PersonAddressService {
     private AddressResponse toResponse(PersonAddress a) {
         // The areas that are set, village first
         List<GeoArea> areas = new ArrayList<>();
-        for (GeoArea area : new GeoArea[] {a.getVillage(), a.getCommune(), a.getDistrict(), a.getProvince()}) {
+        for (GeoArea area : new GeoArea[]{a.getVillage(), a.getCommune(), a.getDistrict(), a.getProvince()}) {
             if (area != null) {
                 areas.add(area);
             }
@@ -205,12 +243,16 @@ public class PersonAddressServiceImpl implements PersonAddressService {
                 a.getAddressLine(), String.join(" ", kh), String.join(", ", en));
     }
 
-    /** One level of the address (id, code, names) for the response; null when that level is empty. */
+    /**
+     * One level of the address (id, code, names) for the response; null when that level is empty.
+     */
     private AddressResponse.Area area(GeoArea area) {
         return area == null ? null : geoAreaMapper.toArea(area);
     }
 
-    /** "" or "   " → null, so the database never stores empty text. */
+    /**
+     * "" or "   " → null, so the database never stores empty text.
+     */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }

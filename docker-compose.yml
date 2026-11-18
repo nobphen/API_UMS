@@ -15,20 +15,21 @@ services:
     ports:
       - "6379:6379"
 
-  # File storage (MinIO) is not used yet. The minio/minio image is no longer published on Docker Hub,
-  # so add a working MinIO / S3-compatible image here when the file upload feature is built.
-  # minio:
-  #   image: <minio-compatible-image>
-  #   command: server /data --console-address ":9001"
-  #   environment:
-  #     MINIO_ROOT_USER: minioadmin
-  #     MINIO_ROOT_PASSWORD: minioadmin
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   volumes:
-  #     - miniodata:/data
+  # File storage (photos, documents): an S3 server. MinIO's free image is gone, RustFS is a free S3 server
+  # that works the same way. The app talks S3 (ums.storage.s3.*), so in production only the URL and keys
+  # change (Amazon S3, Cloudflare R2 or RustFS on a server). Web page to see the files: http://localhost:9001
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: umsadmin          # dev only: same as ums.storage.s3.access-key in application-dev.yml
+      RUSTFS_SECRET_KEY: umsadmin123       # dev only: same as ums.storage.s3.secret-key
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"   # S3 API: Spring Boot uploads and the app downloads here
+      - "9001:9001"   # web page (console)
+    volumes:
+      - rustfsdata:/data   # the files survive a container restart
 
 volumes:
   pgdata:
-  # miniodata:
+  rustfsdata:

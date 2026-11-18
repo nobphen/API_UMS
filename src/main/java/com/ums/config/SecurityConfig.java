@@ -65,8 +65,7 @@ public class SecurityConfig {
                         "/api/v1/auth/password/change").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/ws/**", "/actuator/health").permitAll()
-                // Per-endpoint rules go on controller methods with permission codes, e.g.
+                .requestMatchers("/ws/**", "/actuator/health").permitAll()                // Per-endpoint rules go on controller methods with permission codes, e.g.
                 // @RequirePermission(PeoplePermissions.STUDENT_VIEW)
                 .anyRequest()
                 .authenticated()

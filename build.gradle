@@ -33,11 +33,13 @@ ext {
     mapstructVersion = '1.6.3'
     springdocVersion = '3.1.0'
     springModulithVersion = '2.1.0'
+    awsSdkVersion = '2.57.8'      // S3 file storage (photos): works with RustFS, Amazon S3, Cloudflare R2
 }
 
 dependencyManagement {
     imports {
         mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+        mavenBom "software.amazon.awssdk:bom:${awsSdkVersion}"
     }
 }
 
@@ -55,6 +57,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    implementation 'software.amazon.awssdk:s3'   // FileStorageService: upload, delete, signed links (S3FileStorageService)
     implementation 'org.springframework.modulith:spring-modulith-api'   // @ApplicationModule / @NamedInterface for module boundaries
     runtimeOnly 'org.postgresql:postgresql'
 

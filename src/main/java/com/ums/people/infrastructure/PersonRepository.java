@@ -1,6 +1,7 @@
 package com.ums.people.infrastructure;
 
 import com.ums.people.domain.Person;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /** Database access for persons (table persons): the people behind students, staff and guardians. */
@@ -74,4 +75,15 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
      * @return true when someone else has it
      */
     boolean existsByEmailIgnoreCaseAndDeletedAtIsNullAndIdNot(String email, Long id);
+
+    /**
+     * One person that is not deleted. Used by the admin photo endpoints (empty = 404).
+     * <pre>
+     * SELECT p.* FROM persons p WHERE p.id = ? AND p.deleted_at IS NULL
+     * </pre>
+     *
+     * @param id person id
+     * @return the person, or empty when it does not exist or is deleted
+     */
+    Optional<Person> findByIdAndDeletedAtIsNull(Long id);
 }

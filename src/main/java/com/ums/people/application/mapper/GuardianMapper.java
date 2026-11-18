@@ -67,5 +67,6 @@ public interface GuardianMapper {
     @Mapping(target = "nationalId", source = "person.nationalId")
     @Mapping(target = "phone", source = "person.phone")
     @Mapping(target = "email", source = "person.email")
+    @Mapping(target = "photoUrl", source = "person.photoUrl")
     GuardianResponse toResponse(Guardian guardian);
 }
