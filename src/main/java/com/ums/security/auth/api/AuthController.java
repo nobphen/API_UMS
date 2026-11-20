@@ -1,6 +1,7 @@
 package com.ums.security.auth.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.security.auth.api.dto.ChangePasswordRequest;
 import com.ums.security.auth.api.dto.CurrentUserResponse;
 import com.ums.security.auth.api.dto.DeviceInfo;
@@ -157,7 +158,7 @@ public class AuthController {
     @GetMapping("/me")
     public ApiResponse<CurrentUserResponse> me(@AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(new CurrentUserResponse(
-                Long.valueOf(Objects.requireNonNull(jwt.getSubject())),
+                CurrentUser.userId(jwt),
                 jwt.getClaimAsString("username"),
                 jwt.getClaimAsString("user_type"),
                 Long.valueOf(Objects.requireNonNull(jwt.getClaimAsString("sid"))),
@@ -173,7 +174,7 @@ public class AuthController {
     @PutMapping("/me/language")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setLanguage(@Valid @RequestBody LanguageRequest request, @AuthenticationPrincipal Jwt jwt) {
-        userService.setPreferredLanguage(Long.valueOf(Objects.requireNonNull(jwt.getSubject())), request.language());
+        userService.setPreferredLanguage(CurrentUser.userId(jwt), request.language());
     }
 
     /// PASSWORD: change (logged in) · forgot → reset (not logged in, code by email)
@@ -228,7 +229,7 @@ public class AuthController {
     @PostMapping("/qr/{qrId}/approve")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void approveQr(@PathVariable String qrId, @AuthenticationPrincipal Jwt jwt) {
-        qrLoginService.approve(qrId, Long.valueOf(Objects.requireNonNull(jwt.getSubject())));
+        qrLoginService.approve(qrId, CurrentUser.userId(jwt));
     }
 
     /**

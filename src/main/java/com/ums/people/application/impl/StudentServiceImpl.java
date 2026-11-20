@@ -1,8 +1,9 @@
 package com.ums.people.application.impl;
 
-import com.ums.common.util.PhoneNumbers;
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.PhoneNumbers;
+import com.ums.common.util.Texts;
 import com.ums.people.api.dto.NewProgramRequest;
 import com.ums.people.api.dto.NewStudentResponse;
 import com.ums.people.api.dto.PromoteStudentsRequest;
@@ -13,10 +14,10 @@ import com.ums.people.api.dto.StudentResponse;
 import com.ums.people.api.dto.StudentStatusRequest;
 import com.ums.people.api.dto.StudentUpdateRequest;
 import com.ums.people.application.CountryService;
+import com.ums.people.application.mapper.StudentMapper;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.PersonService;
 import com.ums.people.application.StudentService;
-import com.ums.people.application.mapper.StudentMapper;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import com.ums.people.domain.Student;
@@ -312,7 +313,7 @@ public class StudentServiceImpl implements StudentService {
     public Page<StudentResponse> list(String search, Long programId, Long batchId, Integer yearLevel,
                                       Student.Status status, Pageable pageable) {
 
-        String q = search == null ? "" : search.trim();   // null would break the query; "" = all
+        String q = Texts.trimToEmpty(search);   // null would break the query; "" = all
 
         return studentRepository.search(q, programId, batchId, yearLevel, status, pageable)
                 .map(this::toResponse);   // entity page → response page
@@ -394,7 +395,7 @@ public class StudentServiceImpl implements StudentService {
         history.setStudentId(student.getId());
         history.setOldStatus(old);
         history.setNewStatus(next);
-        history.setReason(blankToNull(request.reason()));
+        history.setReason(Texts.blankToNull(request.reason()));
         history.setChangedBy(adminId);
         history.setChangedAt(OffsetDateTime.now());
         studentStatusHistoryRepository.save(history);
@@ -528,10 +529,5 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("error.student.code_exists", studentCode);
         }
         return studentCode;
-    }
-
-    /** The text without spaces around it, or null when it is empty (an empty reason is saved as NULL). */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

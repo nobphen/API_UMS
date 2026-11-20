@@ -1,6 +1,7 @@
 package com.ums.security.session.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.security.SecurityPermissions;
 import com.ums.security.session.api.dto.LoginStatsResponse;
@@ -48,7 +49,7 @@ public class UserSessionController {
     @GetMapping("/me")
     public ApiResponse<List<UserSessionResponse>> mySessions(@AuthenticationPrincipal Jwt jwt) {
         Long currentSessionId = sessionId(jwt);
-        return ApiResponse.ok(userSessionService.getActiveSessions(userId(jwt)).stream()
+        return ApiResponse.ok(userSessionService.getActiveSessions(CurrentUser.userId(jwt)).stream()
                 .map(s -> userSessionMapper.toResponse(s, currentSessionId))
                 .toList());
     }
@@ -60,13 +61,13 @@ public class UserSessionController {
     @DeleteMapping("/me/{sessionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void endMySession(@PathVariable Long sessionId, @AuthenticationPrincipal Jwt jwt) {
-        userSessionService.revokeOwn(userId(jwt), sessionId);
+        userSessionService.revokeOwn(CurrentUser.userId(jwt), sessionId);
     }
 
     /** "Log out all other devices": keeps only the session making this request. Returns how many were ended. */
     @PostMapping("/me/terminate-others")
     public ApiResponse<Integer> endMyOtherSessions(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = userId(jwt);
+        Long userId = CurrentUser.userId(jwt);
         return ApiResponse.ok(userSessionService.revokeAll(
                 userId, UserSession.RevokedReason.TERMINATE_OTHERS, userId, sessionId(jwt)));
     }
@@ -94,7 +95,7 @@ public class UserSessionController {
     @RequirePermission(SecurityPermissions.USER_LOCK)
     public ApiResponse<Integer> endAllUserSessions(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
         return ApiResponse.ok(userSessionService.revokeAll(
-                userId, UserSession.RevokedReason.ADMIN, userId(jwt), null));
+                userId, UserSession.RevokedReason.ADMIN, CurrentUser.userId(jwt), null));
     }
 
     /** Ends one device of the user, e.g. the phone of someone who got into the account; the others stay logged in. */
@@ -103,7 +104,7 @@ public class UserSessionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void endUserSession(@PathVariable Long userId, @PathVariable Long sessionId,
                                @AuthenticationPrincipal Jwt jwt) {
-        userSessionService.revokeByAdmin(userId, sessionId, userId(jwt));
+        userSessionService.revokeByAdmin(userId, sessionId, CurrentUser.userId(jwt));
     }
 
     /// ADMIN: logins and logouts per day ---------------------------
@@ -121,11 +122,6 @@ public class UserSessionController {
     @RequirePermission(SecurityPermissions.AUDIT_VIEW)
     public ApiResponse<List<UserLoginStatsResponse>> loginStatsByUser(@RequestParam(required = false) LocalDate date) {
         return ApiResponse.ok(userSessionService.loginStatsByUser(date));
-    }
-
-    /** The user id from the token's subject ("sub"). */
-    private static Long userId(Jwt jwt) {
-        return Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
     }
 
     /** The session id from the token's "sid" claim. */

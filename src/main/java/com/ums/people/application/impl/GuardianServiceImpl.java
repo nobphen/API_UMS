@@ -1,15 +1,16 @@
 package com.ums.people.application.impl;
 
-import com.ums.common.util.PhoneNumbers;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.PhoneNumbers;
+import com.ums.common.util.Texts;
 import com.ums.people.api.dto.GuardianRequest;
 import com.ums.people.api.dto.GuardianResponse;
 import com.ums.people.api.dto.GuardianUpdateRequest;
 import com.ums.people.application.CountryService;
 import com.ums.people.application.GuardianService;
+import com.ums.people.application.mapper.GuardianMapper;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.PersonService;
-import com.ums.people.application.mapper.GuardianMapper;
 import com.ums.people.domain.Guardian;
 import com.ums.people.domain.Person;
 import com.ums.people.infrastructure.*;
@@ -70,6 +71,7 @@ public class GuardianServiceImpl implements GuardianService {
         //     A NEW object needs save() (JPA does not know it yet)
         Guardian guardian = guardianMapper.toGuardian(request);
         guardian.setPerson(person);
+        guardian.setOccupation(Texts.blankToNull(request.occupation()));   // " Farmer " → "Farmer", "" → null
         guardianRepository.save(guardian);
 
         // 3. Answer with the new guardian
@@ -98,7 +100,7 @@ public class GuardianServiceImpl implements GuardianService {
     public Page<GuardianResponse> list(String search, Pageable pageable) {
 
         // 1. null search → "" (null would break the query; "" = all)
-        String q = search == null ? "" : search.trim();
+        String q = Texts.trimToEmpty(search);
 
         // 1a. A phone search (only digits, spaces, "+"): phones are saved as +855969530336,
         //     so drop the spaces and a leading "0" (096 953 → 96953). Names are left as they are.
@@ -132,11 +134,13 @@ public class GuardianServiceImpl implements GuardianService {
 
         // 2d. The person part: every field from the form (an empty field clears it) → guardianMapper.updatePerson
         guardianMapper.updatePerson(request, person);
+        cleanText(person);   // names and email: no spaces around, "" → null
         person.setNationalityCode(nationalityCode);
         person.setNationalId(nationalId);
 
-        // 3. The guardian part: occupation → guardianMapper.updateGuardian
+        // 3. The guardian part: occupation → guardianMapper.updateGuardian, then clean it
         guardianMapper.updateGuardian(request, guardian);
+        guardian.setOccupation(Texts.blankToNull(request.occupation()));   // " Farmer " → "Farmer", "" → null
 
         // 4. No save(): JPA writes the UPDATEs at commit
         return toResponse(guardian);
@@ -188,6 +192,7 @@ public class GuardianServiceImpl implements GuardianService {
      */
     private Person buildPerson(GuardianRequest request) {
         Person person = guardianMapper.toPerson(request);
+        cleanText(person);   // names and email: no spaces around, "" → null (before the email check)
         person.setNationalityCode(countryService.require(request.nationalityCode()).getCode());
         person.setNationalId(personService.requireValidNationalId(request.nationalId(), person.getNationalityCode(), null));
         personService.requireFreePhone(person.getPhone(), null);   // no person has this phone yet
@@ -201,6 +206,19 @@ public class GuardianServiceImpl implements GuardianService {
     private boolean hasOtherRecord(Long personId) {
         return studentRepository.existsByPerson_IdAndDeletedAtIsNull(personId)
                 || staffRepository.existsByPerson_IdAndDeletedAtIsNull(personId);
+    }
+
+    /**
+     * Cleans the text the user typed, after the mapper copied it (the mapper copies it as it is):
+     * " Dara " → "Dara", and an empty Khmer name or email "" → null, so the database never stores empty text.
+     * firstName and lastName are @NotBlank, so they are never null here.
+     */
+    private static void cleanText(Person person) {
+        person.setFirstName(Texts.blankToNull(person.getFirstName()));
+        person.setLastName(Texts.blankToNull(person.getLastName()));
+        person.setFirstNameKh(Texts.blankToNull(person.getFirstNameKh()));
+        person.setLastNameKh(Texts.blankToNull(person.getLastNameKh()));
+        person.setEmail(Texts.blankToNull(person.getEmail()));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.ums.security.user.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.security.SecurityPermissions;
 import com.ums.security.user.api.dto.TemporaryPasswordResponse;
@@ -10,7 +11,6 @@ import com.ums.security.user.application.UserService;
 import jakarta.validation.Valid;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -44,7 +44,7 @@ public class UserController {
     @PostMapping("/{userId}/reset-password")
     @RequirePermission(SecurityPermissions.USER_UPDATE)
     public ApiResponse<TemporaryPasswordResponse> resetPassword(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(new TemporaryPasswordResponse(userService.resetPassword(userId, adminId(jwt))));
+        return ApiResponse.ok(new TemporaryPasswordResponse(userService.resetPassword(userId, CurrentUser.userId(jwt))));
     }
 
     /**
@@ -55,7 +55,7 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @RequirePermission(SecurityPermissions.USER_LOCK)
     public void lock(@PathVariable Long userId, @AuthenticationPrincipal Jwt jwt) {
-        userService.lock(userId, adminId(jwt));
+        userService.lock(userId, CurrentUser.userId(jwt));
     }
 
     /**
@@ -112,10 +112,5 @@ public class UserController {
     private static Set<String> authorities(Jwt jwt) {
         List<String> list = jwt.getClaimAsStringList("authorities");
         return list == null ? Set.of() : new HashSet<>(list);
-    }
-
-    /** The logged-in admin's users.id (the token's subject). */
-    private static Long adminId(Jwt jwt) {
-        return Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
     }
 }

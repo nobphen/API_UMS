@@ -2,10 +2,11 @@ package com.ums.organization.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.Texts;
 import com.ums.organization.api.dto.ProgramRequest;
 import com.ums.organization.api.dto.ProgramResponse;
-import com.ums.organization.application.ProgramService;
 import com.ums.organization.application.mapper.ProgramMapper;
+import com.ums.organization.application.ProgramService;
 import com.ums.organization.domain.Department;
 import com.ums.organization.domain.Program;
 import com.ums.organization.infrastructure.DepartmentRepository;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.Locale;
 
 /**
  * See {@link ProgramService}. Every method runs in one transaction (@Transactional on the class):
@@ -36,7 +36,7 @@ public class ProgramServiceImpl implements ProgramService {
     @Override
     public ProgramResponse create(ProgramRequest request) {
         // 1. Same code style for everyone: " bcs " → "BCS"
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
 
         // 2. The code must be free (UNIQUE, deleted programs included) → error.program.code_exists
         if (programRepository.existsByCode(code)) {
@@ -50,7 +50,7 @@ public class ProgramServiceImpl implements ProgramService {
         Program program = programMapper.toEntity(request);
         program.setDepartment(department);
         program.setCode(code);
-        program.setNameKh(blankToNull(request.nameKh()));
+        program.setNameKh(Texts.blankToNull(request.nameKh()));
         program.setStatus(statusOrActive(request.status()));
 
         // 5. INSERT, then answer with the saved program (it has its id now)
@@ -70,7 +70,7 @@ public class ProgramServiceImpl implements ProgramService {
     @Transactional(readOnly = true)
     public Page<ProgramResponse> list(String search, Long departmentId, Pageable pageable) {
         // null search → "" (null would break the query), then search and map entity page → response page
-        String q = search == null ? "" : search.trim();   // null would break the query; "" = all
+        String q = Texts.trimToEmpty(search);   // null would break the query; "" = all
         return programRepository.search(q, departmentId, pageable).map(programMapper::toResponse);
     }
 
@@ -81,7 +81,7 @@ public class ProgramServiceImpl implements ProgramService {
         Program program = findProgram(id);
 
         // 2. The new code must be free; its own code is allowed (existsByCodeAndIdNot)
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
         if (programRepository.existsByCodeAndIdNot(code, id)) {
             throw new BusinessException("error.program.code_exists", code);
         }
@@ -93,7 +93,7 @@ public class ProgramServiceImpl implements ProgramService {
         programMapper.update(request,program);
         program.setDepartment(department);
         program.setCode(code);
-        program.setNameKh(blankToNull(request.nameKh()));
+        program.setNameKh(Texts.blankToNull(request.nameKh()));
         program.setStatus(statusOrActive(request.status()));
 
         // 5. No save() needed: JPA writes the UPDATE at commit
@@ -135,19 +135,9 @@ public class ProgramServiceImpl implements ProgramService {
                 .orElseThrow(() -> new NotFoundException("error.department.not_found"));
     }
 
-    /** " bcs " → "BCS", so BCS and bcs can't become two programs. Locale.ROOT: same result on every server. */
-    private static String normalizeCode(String code) {
-        return code.trim().toUpperCase(Locale.ROOT);
-    }
-
-    /** "" or "   " → null, so an empty Khmer name is saved as "no value", not as an empty text. */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
-
     /** Empty status → "ACTIVE": the column is NOT NULL, and a new program is open by default. */
     private static String statusOrActive(String status) {
-        String value = blankToNull(status);
+        String value = Texts.blankToNull(status);
         return value == null ? "ACTIVE" : value;
     }
 }

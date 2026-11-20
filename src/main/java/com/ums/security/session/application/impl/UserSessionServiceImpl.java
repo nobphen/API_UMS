@@ -2,6 +2,7 @@ package com.ums.security.session.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.DateUtils;
 import com.ums.security.auth.api.dto.DeviceInfo;
 import com.ums.security.session.api.dto.LoginStatsResponse;
 import com.ums.security.session.api.dto.UserLoginStatsResponse;
@@ -14,7 +15,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
@@ -37,7 +37,6 @@ public class UserSessionServiceImpl implements UserSessionService {
 
     private static final String REVOKED_KEY = "session:revoked:";
     private static final int USER_AGENT_MAX = 500;
-    private static final ZoneId CAMBODIA = ZoneId.of("Asia/Phnom_Penh");   // a "day" in the login stats
     private static final int DEFAULT_STATS_DAYS = 7;
     private static final int MAX_STATS_DAYS = 366;
 
@@ -179,7 +178,7 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional(readOnly = true)
     public List<LoginStatsResponse> loginStats(LocalDate from, LocalDate to) {
-        LocalDate lastDay = to != null ? to : LocalDate.now(CAMBODIA);
+        LocalDate lastDay = to != null ? to : DateUtils.today();
         LocalDate firstDay = from != null ? from : lastDay.minusDays(DEFAULT_STATS_DAYS - 1);
         if (firstDay.isAfter(lastDay)) {
             throw new BusinessException("error.stats.from_after_to");
@@ -187,7 +186,7 @@ public class UserSessionServiceImpl implements UserSessionService {
         if (ChronoUnit.DAYS.between(firstDay, lastDay) >= MAX_STATS_DAYS) {
             throw new BusinessException("error.stats.too_many_days", MAX_STATS_DAYS);
         }
-        return userSessionRepository.countLoginsPerDay(firstDay, lastDay, CAMBODIA.getId()).stream()
+        return userSessionRepository.countLoginsPerDay(firstDay, lastDay, DateUtils.ZONE.getId()).stream()
                 .map(row -> new LoginStatsResponse(row.getDay(), row.getLogins(), row.getLogouts()))
                 .toList();
     }
@@ -196,9 +195,9 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional(readOnly = true)
     public List<UserLoginStatsResponse> loginStatsByUser(LocalDate date) {
-        LocalDate day = date != null ? date : LocalDate.now(CAMBODIA);
-        Instant start = day.atStartOfDay(CAMBODIA).toInstant();
-        Instant end = day.plusDays(1).atStartOfDay(CAMBODIA).toInstant();
+        LocalDate day = date != null ? date : DateUtils.today();
+        Instant start = DateUtils.startOfDay(day).toInstant();
+        Instant end = DateUtils.startOfDay(day.plusDays(1)).toInstant();
         return userSessionRepository.countLoginsPerUser(start, end).stream()
                 .map(row -> new UserLoginStatsResponse(row.getUserId(), row.getUsername(), row.getUserType(),
                         row.getLogins(), row.getLogouts()))

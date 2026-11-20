@@ -1,6 +1,7 @@
 package com.ums.people.api;
 
 import com.ums.common.response.ApiResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.AddressRequest;
@@ -11,7 +12,6 @@ import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.PersonService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -71,7 +71,7 @@ public class PersonController {
      */
     @GetMapping("/me")
     public ApiResponse<PersonResponse> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(personService.getMyProfile(userId(jwt)));
+        return ApiResponse.ok(personService.getMyProfile(CurrentUser.userId(jwt)));
     }
 
     /**
@@ -82,7 +82,7 @@ public class PersonController {
     @PutMapping("/me")
     public ApiResponse<PersonResponse> updateMyProfile(@Valid @RequestBody MyProfileUpdateRequest request,
                                                        @AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(personService.updateMyProfile(userId(jwt), request));
+        return ApiResponse.ok(personService.updateMyProfile(CurrentUser.userId(jwt), request));
     }
 
     /// PHOTO: form-data with one field "file" (JPG or PNG, max 2 MB) ----------------
@@ -94,7 +94,7 @@ public class PersonController {
     @PutMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<PersonResponse> updateMyPhoto(@RequestPart("file") MultipartFile file,
                                                      @AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(personService.updateMyPhoto(userId(jwt), file));
+        return ApiResponse.ok(personService.updateMyPhoto(CurrentUser.userId(jwt), file));
     }
 
     /**
@@ -103,7 +103,7 @@ public class PersonController {
      */
     @DeleteMapping("/me/photo")
     public ApiResponse<PersonResponse> deleteMyPhoto(@AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(personService.deleteMyPhoto(userId(jwt)));
+        return ApiResponse.ok(personService.deleteMyPhoto(CurrentUser.userId(jwt)));
     }
 
     /**
@@ -124,12 +124,5 @@ public class PersonController {
     @RequirePermission({PeoplePermissions.STUDENT_UPDATE, PeoplePermissions.STAFF_MANAGE, PeoplePermissions.GUARDIAN_MANAGE})
     public ApiResponse<PersonResponse> deletePhoto(@PathVariable Long personId) {
         return ApiResponse.ok(personService.deletePhoto(personId));
-    }
-
-    /// HELPERS ------------------------------------------------------
-
-    /** The login's user id from the token ("sub" = users.id). */
-    private static Long userId(Jwt jwt) {
-        return Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
     }
 }

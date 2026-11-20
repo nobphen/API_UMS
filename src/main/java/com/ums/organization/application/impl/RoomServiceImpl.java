@@ -2,10 +2,11 @@ package com.ums.organization.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.Texts;
 import com.ums.organization.api.dto.RoomRequest;
 import com.ums.organization.api.dto.RoomResponse;
-import com.ums.organization.application.RoomService;
 import com.ums.organization.application.mapper.RoomMapper;
+import com.ums.organization.application.RoomService;
 import com.ums.organization.domain.Building;
 import com.ums.organization.domain.Room;
 import com.ums.organization.infrastructure.BuildingRepository;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.Locale;
 
 /**
  * See {@link RoomService}. Every method runs in one transaction (@Transactional on the class):
@@ -38,13 +38,12 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse create(RoomRequest request) {
 
         // 1. Same code style for everyone: " r101 " → "R101"
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
 
         // 2. The code must be free in this building (the same code in another building is OK)
         if (roomRepository.existsByBuildingIdAndCode(request.buildingId(), code)) {
             throw new BusinessException("error.room.code_exists",code);
         }
-
 
         // 3. The building must exist and not be deleted
         Building building = findBuilding(request.buildingId());
@@ -73,7 +72,7 @@ public class RoomServiceImpl implements RoomService {
     @Transactional(readOnly = true)
     public Page<RoomResponse> list(String search, Long buildingId, Room.RoomType roomType, Pageable pageable) {
 
-        String q = search == null ? "" : search.trim();   // null would break the query; "" = all
+        String q = Texts.trimToEmpty(search);   // null would break the query; "" = all
 
         return roomRepository.search(q, buildingId, roomType, pageable).map(roomMapper::toResponse);   // entity page → response page
     }
@@ -86,7 +85,7 @@ public class RoomServiceImpl implements RoomService {
         Room room = findRoom(id);
 
         // 2. The new code must be free in the building; its own code is allowed (IdNot skips this room)
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
         if (roomRepository.existsByBuildingIdAndCodeAndIdNot(request.buildingId(), code, id)) {
             throw new BusinessException("error.room.code_exists",code);
         }
@@ -140,10 +139,5 @@ public class RoomServiceImpl implements RoomService {
     private Room findRoom(Long id) {
         return roomRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new NotFoundException("error.room.not_found"));
-    }
-
-    /** " r101 " → "R101", so R101 and r101 can't become two rooms. Locale.ROOT: same result on every server. */
-    private static String normalizeCode(String code) {
-        return code.trim().toUpperCase(Locale.ROOT);
     }
 }

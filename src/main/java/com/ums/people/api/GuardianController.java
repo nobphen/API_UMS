@@ -2,6 +2,7 @@ package com.ums.people.api;
 
 import com.ums.common.response.ApiResponse;
 import com.ums.common.response.PageResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.GuardianRequest;
@@ -9,7 +10,6 @@ import com.ums.people.api.dto.GuardianResponse;
 import com.ums.people.api.dto.GuardianUpdateRequest;
 import com.ums.people.application.GuardianService;
 import jakarta.validation.Valid;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -87,7 +87,7 @@ public class GuardianController {
     @DeleteMapping("/{id}")
     @RequirePermission(PeoplePermissions.GUARDIAN_MANAGE)
     public ApiResponse<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        Long adminId = CurrentUser.userId(jwt);
         guardianService.delete(id, adminId);
         return ApiResponse.deleted();
     }

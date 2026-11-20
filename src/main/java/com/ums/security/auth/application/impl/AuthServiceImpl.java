@@ -1,6 +1,7 @@
 package com.ums.security.auth.application.impl;
 
 import com.ums.common.exception.BusinessException;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.util.PhoneNumbers;
 import com.ums.security.auth.AuthUser;
 import com.ums.security.auth.api.dto.ChangePasswordRequest;
@@ -248,7 +249,7 @@ public class AuthServiceImpl implements AuthService {
     public void logout(Jwt accessToken) {
         // 1. Session id (sid) and user id (sub) from the access token
         Long sessionId = Long.valueOf(Objects.requireNonNull(accessToken.getClaimAsString("sid")));
-        Long userId = Long.valueOf(Objects.requireNonNull(accessToken.getSubject()));
+        Long userId = CurrentUser.userId(accessToken);
 
         // 2. End only this session; the token stops working at the next request (SessionActivityFilter)
         userSessionService.revoke(sessionId, UserSession.RevokedReason.LOGOUT, userId);
@@ -287,7 +288,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public TokenResponse changePassword(Jwt accessToken, ChangePasswordRequest request) {
         // 1. User id and session id from the access token, then load the user
-        Long userId = Long.valueOf(Objects.requireNonNull(accessToken.getSubject()));
+        Long userId = CurrentUser.userId(accessToken);
         Long sessionId = Long.valueOf(Objects.requireNonNull(accessToken.getClaimAsString("sid")));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadCredentialsException("auth.user_not_found"));

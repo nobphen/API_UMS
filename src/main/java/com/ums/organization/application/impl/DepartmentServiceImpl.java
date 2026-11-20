@@ -2,6 +2,7 @@ package com.ums.organization.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.Texts;
 import com.ums.organization.api.dto.DepartmentRequest;
 import com.ums.organization.api.dto.DepartmentResponse;
 import com.ums.organization.application.DepartmentService;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.Locale;
 
 /**
  * See {@link DepartmentService}. Every method runs in one transaction (@Transactional on the class):
@@ -39,7 +39,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     public DepartmentResponse create(DepartmentRequest request) {
 
         // 1. Same code style for everyone: " cs " → "CS"
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
 
         // 2. The code must be free (the database keeps it UNIQUE, deleted departments included)
         if (departmentRepository.existsByCode(code)) {
@@ -53,7 +53,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department department = departmentMapper.toEntity(request);
         department.setFaculty(faculty);
         department.setCode(code);
-        department.setNameKh(blankToNull(request.nameKh()));
+        department.setNameKh(Texts.blankToNull(request.nameKh()));
 
         // 5. INSERT, then answer with the saved department (it has its id now)
         return departmentMapper.toResponse(departmentRepository.save(department));
@@ -70,7 +70,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public Page<DepartmentResponse> list(String search, Long facultyId, Pageable pageable) {
-        String q = search == null ? "" : search.trim();   // null would break the query; "" = all
+        String q = Texts.trimToEmpty(search);   // null would break the query; "" = all
         return departmentRepository.search(q, facultyId, pageable).map(departmentMapper::toResponse);   // entity page → response page
     }
 
@@ -82,7 +82,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department department = findDepartment(id);
 
         // 2. The new code must be free; its own code is allowed (IdNot skips this department)
-        String code = normalizeCode(request.code());
+        String code = Texts.normalizeCode(request.code());
         if (departmentRepository.existsByCodeAndIdNot(code, id)) {
             throw new BusinessException("error.department.code_exists", code);
         }
@@ -94,7 +94,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         departmentMapper.update(request, department);
         department.setFaculty(faculty);
         department.setCode(code);
-        department.setNameKh(blankToNull(request.nameKh()));
+        department.setNameKh(Texts.blankToNull(request.nameKh()));
 
         // 5. No save() needed: the department was loaded in this transaction, so JPA writes the UPDATE at commit
         return departmentMapper.toResponse(department);
@@ -126,15 +126,5 @@ public class DepartmentServiceImpl implements DepartmentService {
     private Faculty findFaculty(Long facultyId) {
         return facultyRepository.findByIdAndDeletedAtIsNull(facultyId)
                 .orElseThrow(() -> new NotFoundException("error.faculty.not_found"));
-    }
-
-    /** " cs " → "CS", so CS and cs can't become two departments. Locale.ROOT: same result on every server. */
-    private static String normalizeCode(String code) {
-        return code.trim().toUpperCase(Locale.ROOT);
-    }
-
-    /** "" or "   " → null, so an empty Khmer name is saved as "no value", not as an empty text. */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

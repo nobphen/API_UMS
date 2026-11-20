@@ -2,6 +2,7 @@ package com.ums.people.api;
 
 import com.ums.common.response.ApiResponse;
 import com.ums.common.response.PageResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.NewProgramRequest;
@@ -23,7 +24,6 @@ import com.ums.people.application.StudentService;
 import com.ums.people.domain.Student;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -128,7 +128,7 @@ public class StudentController {
     @RequirePermission(PeoplePermissions.STUDENT_UPDATE)
     public ApiResponse<StudentResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StudentStatusRequest request,
                                                      @AuthenticationPrincipal Jwt jwt) {
-        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        Long adminId = CurrentUser.userId(jwt);
         return ApiResponse.ok(studentService.changeStatus(id, request, adminId));
     }
 
@@ -151,7 +151,7 @@ public class StudentController {
     @DeleteMapping("/{id}")
     @RequirePermission(PeoplePermissions.STUDENT_DELETE)
     public ApiResponse<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        Long adminId = CurrentUser.userId(jwt);
         studentService.delete(id, adminId);
         return ApiResponse.deleted();
     }
@@ -221,7 +221,7 @@ public class StudentController {
      */
     @GetMapping("/me")
     public ApiResponse<List<StudentResponse>> myPrograms(@AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(studentService.getByUser(Long.valueOf(Objects.requireNonNull(jwt.getSubject()))));
+        return ApiResponse.ok(studentService.getByUser(CurrentUser.userId(jwt)));
     }
 
     /**

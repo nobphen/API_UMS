@@ -2,6 +2,7 @@ package com.ums.people.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.Texts;
 import com.ums.people.api.dto.BatchRequest;
 import com.ums.people.api.dto.BatchResponse;
 import com.ums.people.application.BatchService;
@@ -46,7 +47,7 @@ public class BatchServiceImpl implements BatchService {
         // 3. Copy the request into a new entity, then set the trimmed names
         Batch batch = batchMapper.toEntity(request);
         batch.setName(name);
-        batch.setNameKh(blankToNull(request.nameKh()));
+        batch.setNameKh(Texts.blankToNull(request.nameKh()));
 
         // 4. INSERT, then answer with the saved batch (it has its id now)
         return batchMapper.toResponse(batchRepository.save(batch));
@@ -95,7 +96,7 @@ public class BatchServiceImpl implements BatchService {
         // 5. Copy the request onto the batch, then set the trimmed names
         batchMapper.update(request, batch);
         batch.setName(name);
-        batch.setNameKh(blankToNull(request.nameKh()));
+        batch.setNameKh(Texts.blankToNull(request.nameKh()));
 
         // 6. No save() needed: the batch was loaded in this transaction, so JPA writes the UPDATE at commit
         return batchMapper.toResponse(batch);
@@ -128,10 +129,5 @@ public class BatchServiceImpl implements BatchService {
         if (!batchRepository.programExists(programId)) {
             throw new NotFoundException("error.program.not_found");
         }
-    }
-
-    /** " ជំនាន់ទី១២ " → "ជំនាន់ទី១២"; null or only spaces → null, so an empty Khmer name is saved as NULL. */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

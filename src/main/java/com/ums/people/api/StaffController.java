@@ -2,6 +2,7 @@ package com.ums.people.api;
 
 import com.ums.common.response.ApiResponse;
 import com.ums.common.response.PageResponse;
+import com.ums.common.security.CurrentUser;
 import com.ums.common.security.RequirePermission;
 import com.ums.people.PeoplePermissions;
 import com.ums.people.api.dto.NewStaffResponse;
@@ -15,7 +16,6 @@ import com.ums.people.application.StaffService;
 import com.ums.people.domain.Staff;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -106,7 +106,7 @@ public class StaffController {
     @RequirePermission(PeoplePermissions.STAFF_MANAGE)
     public ApiResponse<StaffResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody StaffStatusRequest request,
                                                    @AuthenticationPrincipal Jwt jwt) {
-        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        Long adminId = CurrentUser.userId(jwt);
         return ApiResponse.updated(staffService.changeStatus(id, request, adminId));
     }
 
@@ -119,7 +119,7 @@ public class StaffController {
     @DeleteMapping("/{id}")
     @RequirePermission(PeoplePermissions.STAFF_MANAGE)
     public ApiResponse<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        Long adminId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        Long adminId = CurrentUser.userId(jwt);
         staffService.delete(id, adminId);
         return ApiResponse.deleted();
     }
@@ -131,7 +131,7 @@ public class StaffController {
      */
     @GetMapping("/me")
     public ApiResponse<StaffResponse> me(@AuthenticationPrincipal Jwt jwt) {
-        return ApiResponse.ok(staffService.getByUser(Long.valueOf(Objects.requireNonNull(jwt.getSubject()))));
+        return ApiResponse.ok(staffService.getByUser(CurrentUser.userId(jwt)));
     }
 
     /**

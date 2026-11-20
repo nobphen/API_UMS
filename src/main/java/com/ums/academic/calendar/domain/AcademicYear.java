@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 
+/** One school year (table academic_years), e.g. 2026-2027. Its semesters point to it. Only one is current. */
 @Getter
 @Setter
 @Auditable
@@ -20,9 +21,11 @@ public class AcademicYear extends SoftDeletableEntity {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
+    /** First day of the year. */
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
+    /** Last day of the year (after startDate). */
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 

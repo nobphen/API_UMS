@@ -1,8 +1,9 @@
 package com.ums.people.application.impl;
 
-import com.ums.common.util.PhoneNumbers;
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.PhoneNumbers;
+import com.ums.common.util.Texts;
 import com.ums.people.api.dto.NewStaffResponse;
 import com.ums.people.api.dto.StaffRequest;
 import com.ums.people.api.dto.StaffResponse;
@@ -10,10 +11,10 @@ import com.ums.people.api.dto.StaffStatusRequest;
 import com.ums.people.api.dto.StaffUpdateRequest;
 import com.ums.people.api.dto.StatusHistoryResponse;
 import com.ums.people.application.CountryService;
+import com.ums.people.application.mapper.StaffMapper;
 import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.PersonService;
 import com.ums.people.application.StaffService;
-import com.ums.people.application.mapper.StaffMapper;
 import com.ums.people.domain.Person;
 import com.ums.people.domain.Staff;
 import com.ums.people.domain.StaffStatusHistory;
@@ -199,7 +200,7 @@ public class StaffServiceImpl implements StaffService {
                                     Staff.Status status, Pageable pageable) {
 
         // 1. null search → "" (null would break the query; "" = all)
-        String q = search == null ? "" : search.trim();
+        String q = Texts.trimToEmpty(search);
 
         // 2. One page from the database, each staff → response
         return staffRepository.search(q, departmentId, staffType, status, pageable).map(this::toResponse);
@@ -321,7 +322,7 @@ public class StaffServiceImpl implements StaffService {
         history.setStaffId(staff.getId());
         history.setOldStatus(old);
         history.setNewStatus(next);
-        history.setReason(blankToNull(request.reason()));
+        history.setReason(Texts.blankToNull(request.reason()));
         history.setChangedBy(adminId);
         history.setChangedAt(OffsetDateTime.now());
         staffStatusHistoryRepository.save(history);
@@ -487,12 +488,5 @@ public class StaffServiceImpl implements StaffService {
             throw new BusinessException("error.staff.code_exists", staffCode);
         }
         return staffCode;
-    }
-
-    /**
-     * The text without spaces around it, or null when it is empty (an empty reason is saved as NULL).
-     */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

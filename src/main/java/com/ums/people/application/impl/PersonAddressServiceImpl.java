@@ -2,11 +2,12 @@ package com.ums.people.application.impl;
 
 import com.ums.common.exception.BusinessException;
 import com.ums.common.exception.NotFoundException;
+import com.ums.common.util.Texts;
 import com.ums.people.api.dto.AddressRequest;
 import com.ums.people.api.dto.AddressResponse;
 import com.ums.people.application.CountryService;
-import com.ums.people.application.PersonAddressService;
 import com.ums.people.application.mapper.GeoAreaMapper;
+import com.ums.people.application.PersonAddressService;
 import com.ums.people.domain.Country;
 import com.ums.people.domain.GeoArea;
 import com.ums.people.domain.Person;
@@ -146,9 +147,9 @@ public class PersonAddressServiceImpl implements PersonAddressService {
 
         address.setPerson(person);
         address.setType(request.type());
-        address.setHouseNo(blankToNull(request.houseNo()));
-        address.setStreet(blankToNull(request.street()));
-        address.setAddressLine(blankToNull(request.addressLine()));
+        address.setHouseNo(Texts.blankToNull(request.houseNo()));
+        address.setStreet(Texts.blankToNull(request.street()));
+        address.setAddressLine(Texts.blankToNull(request.addressLine()));
         String countryCode = countryService.require(request.countryCode()).getCode();   // empty = KH
         address.setCountryCode(countryCode);
 
@@ -248,12 +249,5 @@ public class PersonAddressServiceImpl implements PersonAddressService {
      */
     private AddressResponse.Area area(GeoArea area) {
         return area == null ? null : geoAreaMapper.toArea(area);
-    }
-
-    /**
-     * "" or "   " → null, so the database never stores empty text.
-     */
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }
