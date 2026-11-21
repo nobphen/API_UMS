@@ -35,7 +35,7 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     private static final long NEW_YEAR = 0L;
 
     private final AcademicYearRepository academicYearRepository;
-    private final SemesterRepository semesterRepository;   // update and delete: the year's semesters
+    private final SemesterRepository semesterRepository;   // update, makeCurrent and delete: the year's semesters
     private final AcademicYearMapper academicYearMapper;   // request → entity → response (MapStruct)
 
     /**
@@ -153,6 +153,7 @@ public class AcademicYearServiceImpl implements AcademicYearService {
 
     /**
      * Switch the old current year off, this one on (like the primary guardian).
+     * The current semester of the old year is switched off too.
      */
     @Override
     public AcademicYearResponse makeCurrent(Long id) {
@@ -180,12 +181,19 @@ public class AcademicYearServiceImpl implements AcademicYearService {
         // 3. This year → current = true (always, no "if": a new year is still false here)
         academicYear.setCurrent(true);
 
-        // 4. Answer (UPDATE at commit) → return academicYearMapper.toResponse(year);
+        // 4. The current semester belongs to another (old) year → current = false
+        //    (a semester can only be current if its year is current; the admin then picks
+        //     a semester of the new year with PUT /semesters/{id}/current)
+        semesterRepository.findByCurrentTrueAndDeletedAtIsNull()
+                .filter(semester -> !semester.getAcademicYear().getId().equals(id))
+                .ifPresent(semester -> semester.setCurrent(false));
+
+        // 5. Answer (UPDATE at commit) → return academicYearMapper.toResponse(year);
         return academicYearMapper.toResponse(academicYear);
     }
 
     /**
-     * Soft delete: refused while the year has semesters, otherwise set deletedAt.
+     * Soft delete: refused while the year is current or has semesters, otherwise set deletedAt.
      */
     @Override
     public void delete(Long id) {
@@ -193,14 +201,21 @@ public class AcademicYearServiceImpl implements AcademicYearService {
         // 1. The year must exist and not be deleted → AcademicYear year = findYear(id);
         AcademicYear academicYear = findYear(id);
 
-        // 2. Still has semesters: refuse (delete them first), or 400
+        // 2. The current year can't be deleted: make another year current first, or 400
+        //    (a deleted row would keep is_current = true, and makeCurrent could never switch it off)
+        //    → if (academicYear.isCurrent()) → BusinessException("error.academic_year.is_current")
+        if (academicYear.isCurrent()) {
+            throw new BusinessException("error.academic_year.is_current");
+        }
+
+        // 3. Still has semesters: refuse (delete them first), or 400
         //    → semesterRepository.existsByAcademicYear_IdAndDeletedAtIsNull(id)
         //    → BusinessException("error.academic_year.has_semesters")
         if (semesterRepository.existsByAcademicYear_IdAndDeletedAtIsNull(id)) {
             throw new BusinessException("error.academic_year.has_semesters");
         }
 
-        // 3. Soft delete: the row stays, GET no longer shows it → year.setDeletedAt(OffsetDateTime.now());
+        // 4. Soft delete: the row stays, GET no longer shows it → year.setDeletedAt(OffsetDateTime.now());
         OffsetDateTime now = OffsetDateTime.now();
         academicYear.setDeletedAt(now);
     }

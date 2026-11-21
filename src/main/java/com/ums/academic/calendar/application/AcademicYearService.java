@@ -62,7 +62,8 @@ public interface AcademicYearService {
 
     /**
      * Makes this year the current one; the old current year is switched off (only one current).
-     * Already current = nothing changes.
+     * Already current = nothing changes. The current semester of the old year is switched off too
+     * (pick a semester of the new year afterwards).
      *
      * @param id academic year id
      * @return the year, now current
@@ -75,7 +76,8 @@ public interface AcademicYearService {
      *
      * @param id academic year id
      * @throws com.ums.common.exception.NotFoundException error.academic_year.not_found
-     * @throws com.ums.common.exception.BusinessException error.academic_year.has_semesters while it still has semesters
+     * @throws com.ums.common.exception.BusinessException error.academic_year.is_current when it is the current year,
+     *                                                    error.academic_year.has_semesters while it still has semesters
      */
     void delete(Long id);
 }

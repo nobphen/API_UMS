@@ -11,6 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Login accepts the username, the email or the phone number, as typed ("012 345 678" finds +85512345678).
+     * No SQL of its own: it cleans the text and calls {@link #findForLogin} (its SQL is there).
      *
      * @param login username, email or phone number
      * @return the user, or empty when nothing matches

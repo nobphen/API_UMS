@@ -82,7 +82,7 @@ public class AcademicYearController {
     }
 
     /**
-     * Makes this year the current one; the old current year is switched off. No body.
+     * Makes this year the current one; the old current year and its current semester are switched off. No body.
      * PUT, not GET: it changes data, and a GET can be repeated by the browser on its own.
      * <pre>PUT /api/v1/academic-years/1/current</pre>
      */
@@ -94,7 +94,7 @@ public class AcademicYearController {
 
     /**
      * Soft delete: the row stays for history, but the year is no longer listed.
-     * Refused (400) while the year still has semesters.
+     * Refused (400) while the year is current (make another year current first) or still has semesters.
      * <pre>DELETE /api/v1/academic-years/1</pre>
      */
     @DeleteMapping("/{id}")
